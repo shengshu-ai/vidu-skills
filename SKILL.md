@@ -1,44 +1,85 @@
 ---
-name: vidu-video-generation
-description: Generate video with vidu via bundled scripts. Use when the user wants 文生视频, 图生视频, 首尾帧生视频, 参考生视频, 创建主体 (material element), or to submit or check vidu tasks. 创建主体: upload 1–3 images, name and description, call material/elements API. Execution is script-based; run scripts in scripts/ with VIDU_TOKEN set.
-compatibility: Requires ability to run Python scripts (Python 3, requests). Set VIDU_TOKEN in the environment; optionally VIDU_BASE_URL for domain (default https://service.vidu.cn). See scripts/README.md for dependency and examples.
+name: vidu-skills
+description: Generate video by calling the official Vidu API with curl. Use when the user wants 文生视频, 图生视频, 首尾帧生视频, 参考生视频, 创建主体 (material element), or to submit or check vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
+compatibility: Requires ability to run curl (or equivalent HTTP client). Set VIDU_TOKEN in the environment; VIDU_BASE_URL optional (default https://service.vidu.cn). See references/api_reference.md for full API.
+version: 1.0.1
 ---
 
 # Vidu Video Generation Skill
 
-## Execution model: use scripts
+Generate AI videos with Vidu (生数) via direct API calls — text-to-video, image-to-video, start-end frame, reference-based generation, and material elements, up to 1080p. Use curl with VIDU_TOKEN.
 
-**All execution for this skill is done by running the bundled scripts** in `scripts/`. Do not implement the API calls yourself; run the appropriate script and use its output.
+## Execution model: use curl (direct API)
 
-- **Submit task**: Run **scripts/run_vidu_generation.py** with the user’s prompt and optional image path(s). It handles upload (if needed) → submit → **returns task_id**. No wait mode; use task_id to query status/result when needed.
-- **Query task status/result**: Use **scripts/get_task_result.py** \<task_id\> (or GET `/vidu/v1/tasks/{task_id}`) to get current state and, when success, video URL(s).
-- **Task state SSE (流式)**: GET `https://service.vidu.cn/vidu/v1/tasks/state?id={task_id}` is an **SSE** stream. When using this endpoint, **return the SSE output directly to the model** — do not wait for a terminal state. Each event includes `state`, `estimated_time_left`, `err_code`, and **queue_wait_time** (排队预测时间, **unit: minutes**).
-- **主体预处理 (script)**: Run **scripts/pre_process_element.py** with `--name` and 1–3 `--image-uri` (ssupload:?id=...); calls POST material/elements/pre-process only, outputs full response including `recaption` (style, description). Use when you need recaption alone or as a step before create_element.
-- **创建主体 (script)**: Run **scripts/create_element.py** with `--name`, 1–3 `--image` paths, and optional `--description`/`--style`; uploads images → runs **pre_process_element.py** (required every time) → POSTs to material/elements (uses pre-process recaption when `--description` is omitted), outputs element `id` and `version`.
-- **Step-by-step**: If you need to run individual steps, use **scripts/upload_image.py**, **scripts/pre_process_element.py**, **scripts/create_element.py**, **scripts/list_elements.py**, **scripts/submit_task.py**, **scripts/get_task_result.py**, and **scripts/get_upload_url.py** as needed. See scripts/README.md for usage and examples.
+**All execution is done by calling the official Vidu API** with curl (or any HTTP client). Base URL: **$VIDU_BASE_URL** (default `https://service.vidu.cn` for mainland China; `https://service.vidu.com` for overseas).
 
-Ensure the environment has **VIDU_TOKEN** set. **VIDU_BASE_URL** configures the service domain: **中国大陆** 使用 `https://service.vidu.cn`（默认），**海外/非中国地区** 使用 `https://service.vidu.com`。Scripts require Python 3 and `requests`; see **scripts/README.md** for details.
+**Required headers for all requests:**
+
+| Header | Value |
+|--------|--------|
+| Authorization | `Token $VIDU_TOKEN` |
+| Content-Type | `application/json` |
+| User-Agent | `viduclawbot/1.0 (+$VIDU_BASE_URL)` |
+
+**Main endpoints:**
+
+- **Create upload**: POST `$VIDU_BASE_URL/tools/v1/files/uploads` → get `put_url`, `id`
+- **PUT image**: PUT raw image bytes to `put_url` → get ETag
+- **Finish upload**: PUT `$VIDU_BASE_URL/tools/v1/files/uploads/{id}/finish` → get `ssupload:?id={id}`
+- **Submit task**: POST `$VIDU_BASE_URL/vidu/v1/tasks` → get `task_id` (response `id`)
+- **Get task result**: GET `$VIDU_BASE_URL/vidu/v1/tasks/{task_id}` → get `state`, `creations[].nomark_uri`
+- **Task state (SSE)**: GET `$VIDU_BASE_URL/vidu/v1/tasks/state?id={task_id}` with `Accept: text/event-stream` — return SSE stream to the user; do not wait for terminal state. Events include `state`, `estimated_time_left`, `err_code`, **queue_wait_time** (排队预测时间, unit: minutes).
+- **Pre-process element**: POST `$VIDU_BASE_URL/vidu/v1/material/elements/pre-process`
+- **Create element**: POST `$VIDU_BASE_URL/vidu/v1/material/elements`
+- **List elements**: GET `$VIDU_BASE_URL/vidu/v1/material/elements/personal`
+
+---
+
+## Key Capabilities
+
+- **文生视频 (text2video)** — POST `/vidu/v1/tasks` with `type: "text2video"`, `input.prompts` (text only), `settings`.
+- **图生视频 (img2video)** — Upload one image (Create upload → PUT → Finish) to get `ssupload:?id=...`; then POST `/vidu/v1/tasks` with `type: "img2video"`, prompts (text + image).
+- **首尾帧生视频 (headtailimg2video)** — Upload two images; POST `/vidu/v1/tasks` with `type: "headtailimg2video"`, prompts (text + image1 + image2).
+- **参考生视频 (character2video)** — Image(s) + material(s) + text (text required; image + material combined at most 7). POST `/vidu/v1/tasks` with `type: "character2video"`; Q2 only, do not send `transition`.
+- **创建主体** — POST pre-process → POST material/elements (images must be uploaded first). Query list: GET `/vidu/v1/material/elements/personal`.
+- **查询任务** — GET `/vidu/v1/tasks/{task_id}` for result; or GET `/vidu/v1/tasks/state?id={task_id}` for SSE stream.
+
+---
+
+## Setup
+
+1. Obtain a VIDU token (e.g. from the official Vidu console).
+2. Set environment variables:
+   - `export VIDU_TOKEN="your-token"` (required)
+   - `export VIDU_BASE_URL=https://service.vidu.cn` (mainland China, default) or `https://service.vidu.com` (overseas)
+3. **Dependency**: curl or any HTTP client that can send JSON and binary PUT. No Python or scripts required for execution.
+
+---
+
+## Data usage note
+
+This skill sends user-provided text prompts, image data, and task parameters to the Vidu API (service.vidu.cn or service.vidu.com) for video generation. Input data is not persisted locally beyond what is needed for the request. Data handling follows Vidu’s official policy.
 
 ---
 
 ## Overview
 
-Vidu video generation is **asynchronous**: submit a task → get **task_id** → use task_id to **query** task status/result (e.g. get_task_result.py or GET API) when needed. The scripts do not wait; they return task_id after submit.
+Vidu video generation is **asynchronous**: submit a task → get **task_id** → use task_id to **query** status/result (GET `/vidu/v1/tasks/{task_id}` or SSE `/vidu/v1/tasks/state?id=`) when needed.
 
-- **文生视频 (text2video)**: 一段文字。Q3 时长 1–16、宽高比 16:9/9:16/1:1/4:3/3:4、transition pro/speed；Q2 时长 2–8、不传 transition。
-- **图生视频 (img2video)**: **一张图 + 一段文字**。宽高比不传（由输入图决定）。Q3 时长 1–16、transition pro/speed；Q2 时长 2–8、transition pro/speed。
-- **首尾帧生视频 (headtailimg2video)**: **两张图（首帧、尾帧）+ 一段文字**。Q3 时长 1–16、Q2 时长 2–8，transition pro/speed。
-- **参考生视频 (character2video)**: **图 + 主体 + 文字**（可组合）；**文字必填**。**图+主体合计最多 7 个**，至少提供一种（图或主体）。仅 Q2，时长 2–8，**不传 transition**。主体在 prompts 中通过 `type: "material"`、`material.id`、`material.version` 引用。
-- **创建主体 (Create element)**: 上传 1–3 张图片，提供主体名称和可选描述；**必须先**调用 **POST** `/vidu/v1/material/elements/pre-process`（即使用户指定了描述也需调用），再调用 **POST** `/vidu/v1/material/elements`；未指定描述时使用 pre-process 返回的 recaption。图片需先经现有上传流程得到 `ssupload:?id=...`。响应含主体 `id` 与 `version`，用于参考生任务。
-- **查询主体**: **GET** `/vidu/v1/material/elements/personal`，参数 pager.page、pager.pagesz、keyword、modalities；返回 `elements[].id`、`version`。
+- **文生视频 (text2video)**: Text only. Q3 duration 1–16, aspect ratios 16:9/9:16/1:1/4:3/3:4, transition pro/speed; Q2 duration 2–8, do not send transition.
+- **图生视频 (img2video)**: **One image + one text**. Aspect ratio from input image (do not send aspect_ratio). Q3 duration 1–16, Q2 duration 2–8, transition pro/speed.
+- **首尾帧生视频 (headtailimg2video)**: **Two images (start frame, end frame) + one text**. Q3 1–16s, Q2 2–8s, transition pro/speed.
+- **参考生视频 (character2video)**: **Image + material + text** (combinations); **text required**. **Image + material at most 7**, at least one. Q2 only, duration 2–8, **do not send transition**. Reference materials in prompts via `type: "material"`, `material.id`, `material.version`.
+- **创建主体 (Create element)**: Upload 1–3 images, name and optional description; **must** call POST `/vidu/v1/material/elements/pre-process` first, then POST `/vidu/v1/material/elements`. Use pre-process `recaption` when description is omitted. Response includes element `id` and `version` for character2video.
+- **查询主体**: GET `/vidu/v1/material/elements/personal` with `pager.page`, `pager.pagesz`, `keyword`, `modalities`; returns `elements[].id`, `version`.
 
-详见上方「任务支持列表」与 **references/parameters.md**。
+See **任务支持列表** below and **references/parameters.md**.
 
 ---
 
 ## 任务支持列表 (Supported task list)
 
-Before choosing script arguments, ensure the user’s request matches one of the supported task types and constraints below. **references/parameters.md** has the same list for quick lookup.
+When building the POST `/vidu/v1/tasks` body, ensure the user’s request matches one of the supported task types and constraints below. All parameters are passed in the request **body** (type, input.prompts, settings). **references/parameters.md** has the same list for quick lookup.
 
 **模型版本 (Model version)**  
 - **Q3** → `model_version: "3.2"`  
@@ -54,46 +95,38 @@ Before choosing script arguments, ensure the user’s request matches one of the
 | 首尾帧生视频 | headtailimg2video | 两张图 + 一段文字 | Q2 | 2–8 | — | pro, speed | 1080p |
 | 参考生视频 | character2video | **图+主体+文字（文字必填；图+主体合计最多7）** | Q2 | 2–8 | — | **不传** | 1080p |
 
-- **文生视频**: 只传文字，`--type text2video`。Q2 时不要传 transition。
-- **图生视频**: 仅支持 **1 张图片 + 1 段文字**；宽高比由输入图决定，调用时 **不要传 aspect_ratio**。
-- **首尾帧生视频**: 固定 **2 张图 + 1 段文字**，`--type headtailimg2video`；两张图顺序为「首帧、尾帧」。
-- **参考生视频**: **图+主体+文字**（文字必填；图+主体合计最多 7），`--type character2video`；仅 Q2，**不要传 transition**。可用 `--image-uri`、`--material "name:id:version"` 组合。
-
-脚本会根据 `--type` 自动省略不该传的参数（如 img2video 不传 aspect_ratio，character2video 不传 transition）。选 type 和 model-version 时请严格按上表。
+- **文生视频**: Text only; do not send transition for Q2.
+- **图生视频**: Exactly **1 image + 1 text**; do not send `aspect_ratio` in settings.
+- **首尾帧生视频**: Exactly **2 images (start, end) + 1 text**; order is start frame then end frame.
+- **参考生视频**: **Image + material + text** (text required; image + material combined at most 7); Q2 only; **do not send transition**.
 
 ---
 
 ## 创建主体（先 pre-process，再 POST /vidu/v1/material/elements）
 
-创建主体用于在参考生任务中使用的 material element：上传 1–3 张图、名称与描述，接口返回主体 id 与 version。**流程**：**必须先**调用 **POST** `/vidu/v1/material/elements/pre-process`（即使用户指定了描述也需调用；body: `components`, `name`, `type: "user"`），响应中的 `recaption`（style、description）为 vidu 预生成描述；若未特别指定描述，可用该描述填充主体描述；再调用创建主体接口。
+Create a material element for use in character2video: upload 1–3 images, name and description; API returns element `id` and `version`. **Flow**: **First** call **POST** `$VIDU_BASE_URL/vidu/v1/material/elements/pre-process` (required even if user provides description; body: `components`, `name`, `type: "user"`). Response includes `recaption` (style, description). Then call **POST** `$VIDU_BASE_URL/vidu/v1/material/elements` with the pre-process response `id`, same `components`, and `recaption` (or user description).
 
-- **Pre-process URL**: `{VIDU_BASE_URL}/vidu/v1/material/elements/pre-process`，详见 **references/api_reference.md** §3b。
-- **创建主体 URL**: `https://service.vidu.cn/vidu/v1/material/elements`（或 `{VIDU_BASE_URL}/vidu/v1/material/elements`）
-- **Method**: POST
-- **Headers**: 与现有约定一致（Authorization: Token {token}, Content-Type: application/json, User-Agent）。
+**Pre-process**: POST `$VIDU_BASE_URL/vidu/v1/material/elements/pre-process`. See **references/api_reference.md** §3b.
 
-**前置条件**: 每张图片先按「Upload images」三步（CreateUpload → PUT to put_url → FinishUpload）得到 `ssupload:?id={id}`；共 1–3 张图。同一张图可复用同一 id 填 `content` 与 `src_img`，或按 API 要求使用不同 id。
+**Create element**: POST `$VIDU_BASE_URL/vidu/v1/material/elements`. Body: `id` (from pre-process), `name`, `modality: "image"`, `type: "user"`, `components` (1–3 items: **content** = `ssupload:?id={id}`, **src_img** = `ssupload:?id={id}`, `content_type: "image"`), `version: "0"`, `recaption`. See **references/api_reference.md** §3c.
 
-**Request body**: `id`（pre-process 响应中的主体 id，创建时必带）, `name`（主体名称）, `modality: "image"`, `type: "user"`, `components`（1–3 个：第一个 `type: "main"`，其余 `type: "auxiliary"`；每项含 `content`、`src_img` 均为 `ssupload:?id=...`，`content_type: "image"`）, `version: "0"`, `recaption: { description, style? }`（可由 pre-process 响应的 recaption 填充）。详见 **references/api_reference.md** §3b、§3c。
-
-**Example**: 见 api_reference。成功响应含 element `id`、`version`，用于参考生任务。
+**Prerequisite**: Each image must be uploaded first (Create upload → PUT to put_url → Finish) to get `ssupload:?id={id}`; use these in `components`.
 
 ---
 
 ## 查询主体（GET /vidu/v1/material/elements/personal）
 
-- **URL**: `https://service.vidu.cn/vidu/v1/material/elements/personal`
-- **Method**: GET
-- **Query**: `pager.page`（页码）、`pager.pagesz`（每页条数）、`pager.page_token`（可选）、`keyword`（搜索词，URL 编码）、`modalities`（可重复，如 `modalities=image`）。
-- **Response**: `elements[]`，每项含 `id`、`name`、`version`、`components`、`recaption` 等；用 `id` 与 `version` 在参考生任务中引用。另有 `next_page_token`。
+- **URL**: GET `$VIDU_BASE_URL/vidu/v1/material/elements/personal`
+- **Query**: `pager.page`, `pager.pagesz`, `pager.page_token` (optional), `keyword` (URL-encoded), `modalities` (e.g. `modalities=image`).
+- **Response**: `elements[]` with `id`, `name`, `version`, etc.; use `id` and `version` in character2video prompts.
 
 ---
 
 ## 参考生任务中引用主体（character2video）
 
-主体**仅可在参考生任务（character2video）**中使用。提交 **POST** `/vidu/v1/tasks` 时：`type: "character2video"`；`input.prompts` 需包含 **(1) 文本 prompt（必填）**；(2) 可选图 prompt（`type: "image"`）；(3) 可选 material prompt（`type: "material"`, `name`, `material: { "id", "version" }`）。可**图+主体+文字**组合，文字必填，**图+主体合计最多 7 个**，至少一种。
+Materials are used only in **character2video**. When submitting POST `/vidu/v1/tasks`: `type: "character2video"`; `input.prompts` must include **(1) text prompt (required)**; (2) optional image prompt (`type: "image"`); (3) optional material prompt (`type: "material"`, `name`, `material: { "id", "version" }`). Combine image + material + text; text required; **image + material at most 7**, at least one.
 
-**Example**:
+**Example body**:
 
 ```json
 {
@@ -114,50 +147,144 @@ Before choosing script arguments, ensure the user’s request matches one of the
 
 ## Bundled resources
 
-- **scripts/** — **Use these for all execution.** See **scripts/README.md** for dependency (Python 3, requests), environment (VIDU_TOKEN, VIDU_BASE_URL), and example commands for each script.
-- **references/api_reference.md** — Full API contracts (for understanding or when debugging).
-- **references/parameters.md** — 任务支持列表与参数约束 (supported task list and parameter constraints).
-- **references/errors_and_retry.md** — Error handling (read when interpreting failures).
+- **references/api_reference.md** — Full API contracts (endpoints, request/response). Use for building curl requests.
+- **references/parameters.md** — Task types and parameter constraints.
+- **references/errors_and_retry.md** — Error handling and retry guidance.
 
 ---
 
-## Workflow (script-based)
+## Workflow: Submit → Query → Get video URL
 
-1. **Get token and domain**: Ensure **VIDU_TOKEN** is set. Set **VIDU_BASE_URL** by region: mainland China → `https://service.vidu.cn` (default); outside China → `https://service.vidu.com`.
+**Summary**: Submit (POST `/vidu/v1/tasks` → get `task_id`) → Query (GET `/vidu/v1/tasks/{task_id}` or SSE `/vidu/v1/tasks/state?id=`) → Get video from `creations[].nomark_uri`.
 
-2. **文生视频 (text2video)**  
-   `run_vidu_generation.py text2video --prompt "<user text>"`，按任务支持列表加 `--model-version 3.2|3.1`、`--duration`、`--aspect-ratio`、`--transition`（Q2 时不传 transition）。
+### 1. 文生视频 — Submit (curl example)
 
-3. **图生视频 (img2video)**  
-   仅 **1 张图 + 1 段文字**。`run_vidu_generation.py img2video --prompt "<user text>" --image <path>`。不要传 `--aspect-ratio`（脚本会省略）。
+```bash
+curl -s -X POST "$VIDU_BASE_URL/vidu/v1/tasks" \
+  -H "Authorization: Token $VIDU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "User-Agent: viduclawbot/1.0 (+$VIDU_BASE_URL)" \
+  -d '{
+    "type": "text2video",
+    "input": {
+      "prompts": [{"type": "text", "content": "A cat walks in the snow at sunset"}],
+      "editor_mode": "normal",
+      "enhance": true
+    },
+    "settings": {
+      "duration": 5,
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "model_version": "3.2",
+      "transition": "pro",
+      "sample_count": 1,
+      "schedule_mode": "normal",
+      "codec": "h265",
+      "use_trial": false
+    }
+  }'
+```
 
-4. **首尾帧生视频 (headtailimg2video)**  
-   **2 张图（首帧、尾帧）+ 1 段文字**。`run_vidu_generation.py headtailimg2video --prompt "<user text>" --image <首帧路径> --image <尾帧路径>`，并加 `--model-version`、`--duration`、`--transition`。
+Response contains `id` (task_id). Use it to query.
 
-5. **参考生视频 (character2video)**  
-   **图+主体+文字**（文字必填；图+主体合计最多 7），仅 Q2。`run_vidu_generation.py character2video --prompt "<user text>" [--image ...] [--material "name:id:version" ...]`（不要传 transition）。
+### 2. 查询任务结果 (curl example)
 
-6. **Interpret output**  
-   - Script exits 0 and prints **task_id**. Caller uses this task_id to query status/result later (e.g. `get_task_result.py <task_id>` or GET `/vidu/v1/tasks/{task_id}`).
-   - Script exits non-zero or prints error JSON to stderr: report failure to the user and, if present, err_code / err_msg.
+```bash
+curl -s "$VIDU_BASE_URL/vidu/v1/tasks/$TASK_ID" \
+  -H "Authorization: Token $VIDU_TOKEN" \
+  -H "User-Agent: viduclawbot/1.0 (+$VIDU_BASE_URL)"
+```
 
-If you cannot use **run_vidu_generation.py** (e.g. custom body or step-by-step control), run the steps manually in order:
+- **state**: `success` | `failed` | `processing` | ...
+- On **success**: use `creations[].nomark_uri` as the video URL(s).
+- On **failed**: use `err_code`, `err_msg` to report to the user.
 
-- **Upload images**: `python scripts/upload_image.py <image_path>` for each image; capture the output `ssupload:?id=...`. The same upload flow is used for img2video/headtailimg2video/character2video and for **创建主体** (1–3 images).
-- **Get upload resource URL (optional)**: To obtain a public download URL for an uploaded file, run `python scripts/get_upload_url.py <ssupload_uri_or_id>`. **The returned URL is valid for 1 hour only;** after expiry, run the script again to get a new URL.
-- **Submit**: `python scripts/submit_task.py --type ... --prompt "..." [--image-uri ...] [--material ...]`；character2video 时**文字必填**，图+主体合计最多 7。Capture task_id from stdout. Respect 任务支持列表 (img2video 不传 aspect_ratio，character2video 不传 transition).
-- **Query status/result**: `python scripts/get_task_result.py <task_id>`. Call when needed; response includes state and, when success, nomark_uri line(s).
+### 3. 任务状态 SSE (optional, stream to user)
+
+```bash
+curl -N -s "$VIDU_BASE_URL/vidu/v1/tasks/state?id=$TASK_ID" \
+  -H "Authorization: Token $VIDU_TOKEN" \
+  -H "Accept: text/event-stream" \
+  -H "User-Agent: viduclawbot/1.0 (+$VIDU_BASE_URL)"
+```
+
+Return the SSE output directly to the user; do not wait for a terminal state.
+
+### 4. 图片上传（图生视频 / 首尾帧 / 创建主体前）
+
+**Step 1 — Create upload:**
+
+```bash
+curl -s -X POST "$VIDU_BASE_URL/tools/v1/files/uploads" \
+  -H "Authorization: Token $VIDU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "User-Agent: viduclawbot/1.0 (+$VIDU_BASE_URL)" \
+  -d '{"metadata":{"image-width":"1920","image-height":"1080"},"scene":"vidu"}'
+```
+
+From response take `id` and `put_url`.
+
+**Step 2 — PUT image bytes to put_url:**
+
+```bash
+curl -s -X PUT "$PUT_URL" \
+  -H "Content-Type: image/jpeg" \
+  -H "x-amz-meta-image-width: 1920" \
+  -H "x-amz-meta-image-height: 1080" \
+  --data-binary @/path/to/image.jpg
+```
+
+Save the **ETag** from the response (use quotes if the server returns them).
+
+**Step 3 — Finish upload:**
+
+```bash
+curl -s -X PUT "$VIDU_BASE_URL/tools/v1/files/uploads/$UPLOAD_ID/finish" \
+  -H "Authorization: Token $VIDU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "User-Agent: viduclawbot/1.0 (+$VIDU_BASE_URL)" \
+  -d "{\"etag\":\"$ETAG\",\"id\":\"$UPLOAD_ID\"}"
+```
+
+Use `ssupload:?id=$UPLOAD_ID` in task prompts or in element `components`.
+
+### 5. 创建主体（curl flow）
+
+After uploading 1–3 images to get `ssupload:?id=...`:
+
+**Pre-process** — POST `$VIDU_BASE_URL/vidu/v1/material/elements/pre-process` with body `components` (array: each item has **content** = `ssupload:?id={id}`, **src_img** = `ssupload:?id={id}`, `content_type: "image"`), `name`, `type: "user"`. See api_reference §3b.
+
+**Create** — POST `$VIDU_BASE_URL/vidu/v1/material/elements` with body including `id` (from pre-process response), `name`, `modality: "image"`, `type: "user"`, `components`, `version: "0"`, `recaption` (from pre-process or user). See api_reference §3c.
+
+---
+
+## Implementation Guide
+
+1. **Determine task type**: text2video, img2video, headtailimg2video, character2video, or 创建主体.
+2. **Choose parameters**: From 任务支持列表 select `model_version` (Q2/Q3), `duration`, `aspect_ratio`, `transition` (omit for img2video aspect_ratio, character2video transition).
+3. **Prepare inputs**: For img2video/headtailimg2video/character2video or 创建主体, upload image(s) via Create upload → PUT → Finish to get `ssupload:?id=...`. For character2video with materials, ensure elements exist (create via pre-process + create element if needed).
+4. **Submit**: curl POST `$VIDU_BASE_URL/vidu/v1/tasks` with JSON body (type, input.prompts, settings). Capture `id` as task_id.
+5. **Query**: curl GET `$VIDU_BASE_URL/vidu/v1/tasks/{task_id}` (or use SSE) until state is success/failed; on success return `creations[].nomark_uri`; on failure return err_code/err_msg.
+
+---
+
+## Prompt Tips
+
+- **文生视频**: Include scene and action; you can add camera direction (e.g. “镜头缓慢左移”, “特写跟拍”).
+- **图生视频**: Describe what motion or change happens in the scene.
+- **首尾帧**: Similar start/end frames give smooth transition; very different frames can be used for morphing effects.
+- **参考生视频**: Create the material first; in the text prompt use references like `[@主体名]`; ensure text is always present.
 
 ---
 
 ## Output to the user
 
-- **After submit**: Return the **task_id** to the user; mention that video generation is in progress and they can query status/result later with that task_id (e.g. get_task_result.py or GET `/vidu/v1/tasks/{task_id}`).
-- **After query (get_task_result.py)**: If state is success, return the **nomark_uri** link(s) to the user; if failed, report err_code / err_msg.
-- **Failure (submit or script error)**: Clearly state that the task failed and, if available, the reason (err_code / err_msg from script or references).
+- **After submit**: Return the **task_id** (response `id`); tell the user the task is in progress and they can query status/result with that task_id (e.g. GET `/vidu/v1/tasks/{task_id}` or SSE state endpoint).
+- **After query**: If state is success, return the **nomark_uri** link(s); if failed, report **err_code** and **err_msg**.
+- **On failure**: Clearly state that the task failed and, when available, the reason (err_code / err_msg from the API or references).
 
 ---
 
-## Fallback (no Python)
+## Fallback (no curl)
 
-If the environment **cannot** run Python scripts, you cannot execute this skill as intended. Tell the user that this skill requires script execution (Python 3, requests, VIDU_TOKEN) and point them to **scripts/README.md** and **references/api_reference.md** for manual API usage elsewhere.
+If the environment **cannot** run curl (or equivalent HTTP client), execution as described above is not possible. Tell the user that this skill requires curl (or an HTTP client) with VIDU_TOKEN and point them to **references/api_reference.md** for manual API usage.

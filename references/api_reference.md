@@ -107,7 +107,7 @@ Pre-process before creating a material element. **This step is required** — ca
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| components | array | yes | 1–3 items. One with `type: "main"`, rest with `type: "auxiliary"`. Each: `content`, `src_img` (both `ssupload:?id=...`), `content_type: "image"` |
+| components | array | yes | 1–3 items. One with `type: "main"`, rest with `type: "auxiliary"`. Each: `content` = `ssupload:?id={upload_id}`, `src_img` = `ssupload:?id={upload_id}`, `content_type: "image"` |
 | name | string | yes | Subject name (e.g. element_name) |
 | type | string | yes | `"user"` |
 
@@ -129,7 +129,7 @@ Create a material element (subject) with 1–3 images, a name, and a description
 | name | string | yes | Subject name |
 | modality | string | yes | `"image"` |
 | type | string | yes | `"user"` |
-| components | array | yes | 1–3 items. One with `type: "main"` (core image), rest with `type: "auxiliary"`. Each: `content`, `src_img` (both `ssupload:?id=...`), `content_type: "image"` |
+| components | array | yes | 1–3 items. One with `type: "main"` (core image), rest with `type: "auxiliary"`. Each: `content` = `ssupload:?id={upload_id}`, `src_img` = `ssupload:?id={upload_id}`, `content_type: "image"` |
 | version | string | yes | e.g. `"0"` |
 | recaption | object | yes | `description` (required), `style` (optional) |
 
