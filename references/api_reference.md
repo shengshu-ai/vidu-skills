@@ -155,15 +155,15 @@ Create a material element (subject) with 1–3 images, a name, and a description
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| type | string | yes | `"text2video"`, `"img2video"`, `"headtailimg2video"`, or `"character2video"` (subject/material only in character2video) |
+| type | string | yes | `"text2image"`, `"text2video"`, `"img2video"`, `"headtailimg2video"`, `"character2video"`, or `"reference2image"` (subject/material only in character2video and reference2image) |
 | input | object | yes | See Input below |
-| settings | object | yes | See Settings below. For img2video do not send aspect_ratio; for character2video do not send transition (Q2 only). |
+| settings | object | yes | See Settings below. For img2video do not send aspect_ratio; for character2video and reference2image do not send transition (Q2 only). |
 
 **Input:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| prompts | array | yes | List of prompt objects (text, image, and/or material). Max 20. For character2video: **text required**; image + material combined at most 7 (图+主体合计最多7). |
+| prompts | array | yes | List of prompt objects (text, image, and/or material). Max 20. For character2video and reference2image: **text required**; image + material combined at most 7 (图+主体合计最多7). |
 | editor_mode | string | no | `"normal"` typical |
 | enhance | boolean | no | Default true (recaption for text) |
 
@@ -180,13 +180,13 @@ Create a material element (subject) with 1–3 images, a name, and a description
 - `src_imgs`: optional array of `ssupload:?id=...` (source image refs)
 - `selected_region`: optional `{ "top_left": {"x", "y"}, "bottom_right": {"x", "y"} }`
 
-**Prompt object (material, for character2video only):**
+**Prompt object (material, for character2video and reference2image only):**
 
 - `type`: `"material"`
 - `name`: subject name (e.g. display name)
 - `material`: `{ "id": "<element_id>", "version": "<element_version>" }` — from create element or query personal elements response.
 
-**Settings:** See references/parameters.md for full list. Common: duration, resolution, aspect_ratio, model_version, transition, codec, sample_count, schedule_mode, use_trial, movement_amplitude.
+**Settings:** See references/parameters.md for full list. Common: duration (0 for text2image/reference2image), resolution (1080p, 2K, 4K for text2image/reference2image), aspect_ratio, model_version, transition, codec, sample_count, schedule_mode, use_trial, movement_amplitude.
 
 **Response:**
 
@@ -227,7 +227,7 @@ data: {"state":"processing", "estimated_time_left":0, "err_code":"", "queue_wait
 
 - `state`: `success` | `failed` | ...
 - `creations`: array of creation objects when state is success
-  - Each creation: `nomark_uri` (watermark-free video URL), `uri`, `download_uri`, `cover_uri`, `duration`, `video.resolution`, etc.
+  - Each creation: `nomark_uri` (watermark-free video/image URL), `uri`, `download_uri`, `cover_uri`, `duration`, `video.resolution`, etc.
 - `err_code`, `err_msg` (when state is failed)
 
 Use **nomark_uri** for the final video link to the user.
