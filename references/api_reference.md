@@ -147,6 +147,37 @@ Create a material element (subject) with 1–3 images, a name, and a description
 
 ---
 
+## 3e. Search community material elements (搜索社区主体库)
+
+**GET** `/vidu/v1/material/share_elements/feed`
+
+**Query parameters:**
+
+| Parameter        | Description                                                                 |
+| ---------------- | --------------------------------------------------------------------------- |
+| keyword          | Search term (URL-encoded)                                                   |
+| pager.page_token | Pagination token; empty string for first page                               |
+| pager.pagesz     | Page size (e.g. 30)                                                         |
+| modalities       | Repeat for filter: `modalities=image` and/or `modalities=text`              |
+| sort_by          | Sort order: `recommend` (default)                                           |
+| is_like          | `false` (default)                                                           |
+| is_collect       | `false` (default)                                                           |
+
+**Response:** `share_elements` (array), `next_page_token`, `categories`, `topics`, `tags`.
+
+Each `share_elements[]` item:
+- `element.id` — use as `material.id` in character2video / reference2image prompts
+- `element.version` — use as `material.version`
+- `element.name` — display name
+- `element.recaption.description` — AI-generated description
+- `element.recaption.style` — style tag
+- `share.category_display` — category labels (e.g. `["动物"]`)
+- `share.use_count` — usage count
+
+**Note:** No request body; all parameters are query string. Use `--data-urlencode` for `keyword` to handle Chinese characters.
+
+---
+
 ## 4. Create task (submit video generation)
 
 **POST** `/vidu/v1/tasks`

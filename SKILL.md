@@ -37,6 +37,7 @@ Generate AI videos and images with Vidu (生数) via direct API calls — text-t
 - **Pre-process reference**: POST `$VIDU_BASE_URL/vidu/v1/material/elements/pre-process`
 - **Create reference**: POST `$VIDU_BASE_URL/vidu/v1/material/elements`
 - **List elements**: GET `$VIDU_BASE_URL/vidu/v1/material/elements/personal`
+- **Search community elements**: GET `$VIDU_BASE_URL/vidu/v1/material/share_elements/feed`
 
 ---
 
@@ -49,6 +50,7 @@ Generate AI videos and images with Vidu (生数) via direct API calls — text-t
 - **reference-to-image (参考生图)** — Image(s) + reference(s) + text (text required; image + reference combined at most 7). POST `/vidu/v1/tasks` with `type: "reference2image"`; Q2 only, do not send `transition`, `duration` is 0.
 - **reference-to-video (参考生视频)** — Image(s) + reference(s) + text (text required; image + reference combined at most 7). POST `/vidu/v1/tasks` with `type: "character2video"`; Q3 or Q2, do not send `transition`.
 - **Create References (创建主体)** — POST pre-process → POST material/elements (images must be uploaded first). Query list: GET `/vidu/v1/material/elements/personal`.
+- **Search Community References (搜索社区主体库)** — GET `/vidu/v1/material/share_elements/feed` with `keyword`, `pager.page_token`, `pager.pagesz`, `modalities`, `sort_by`; returns `share_elements[].element.id` and `element.version` for use in reference-to-video/image.
 - **Query task (查询任务)** — GET `/vidu/v1/tasks/{task_id}` for result; or GET `/vidu/v1/tasks/state?id={task_id}` for SSE stream.
 
 ---
@@ -98,6 +100,7 @@ Vidu media generation is **asynchronous**: submit a task → get **task_id** →
 - **reference-to-video (参考生视频)**: **Image + reference + text** (combinations); **text required**. **Image + reference at most 7**, at least one. Q3 duration 1–16, Q2 duration 2–8. Do **not** send transition. References in prompts via `type: "material"`, `material.id`, `material.version`.
 - **Create References (创建主体)**: Upload 1–3 images, name and optional description; **must** call POST `/vidu/v1/material/elements/pre-process` first, then POST `/vidu/v1/material/elements`. Use pre-process `recaption` when description is omitted. Response includes element `id` and `version` for reference-to-video.
 - **Search References (查询主体)**: GET `/vidu/v1/material/elements/personal` with `pager.page`, `pager.pagesz`, `keyword`, `modalities`; returns `elements[].id`, `version`.
+- **Search Community References (搜索社区主体库)**: GET `/vidu/v1/material/share_elements/feed` with `keyword`, `pager.page_token`, `pager.pagesz`, `modalities`, `sort_by`; returns `share_elements[].element.id` and `element.version`.
 
 See **Supported task list** below and **references/parameters.md**.
 
@@ -151,6 +154,44 @@ Create a material element for use in character2video or reference2image: upload 
 - **URL**: GET `$VIDU_BASE_URL/vidu/v1/material/elements/personal`
 - **Query**: `pager.page`, `pager.pagesz`, `pager.page_token` (optional), `keyword` (URL-encoded), `modalities` (e.g. `modalities=image`).
 - **Response**: `elements[]` with `id`, `name`, `version`, etc.; use `id` and `version` in reference-to-video or reference-to-image prompts.
+
+---
+
+## Search Community References (搜索社区主体库)
+
+- **URL**: GET `$VIDU_BASE_URL/vidu/v1/material/share_elements/feed`
+- **Query parameters**:
+  - `keyword` — search term (URL-encoded)
+  - `pager.page_token` — pagination token (empty string for first page)
+  - `pager.pagesz` — page size (e.g. 30)
+  - `modalities` — repeat for filter, e.g. `modalities=image` (values: `image`, `text`)
+  - `sort_by` — sort order, e.g. `recommend`
+  - `is_like` — `false` (default)
+  - `is_collect` — `false` (default)
+- **Response**: `share_elements[]` (each has `element` and `share`); `next_page_token` for pagination.
+  - `element.id` — use as `material.id` in character2video / reference2image prompts
+  - `element.version` — use as `material.version`
+  - `element.name` — display name
+  - `element.recaption.description` — AI-generated description
+  - `share.category_display` — category labels (e.g. `["动物"]`)
+
+**Example curl**:
+
+```bash
+curl -s -G "$VIDU_BASE_URL/vidu/v1/material/share_elements/feed" \
+  --data-urlencode "keyword=老虎" \
+  --data-urlencode "pager.page_token=" \
+  -d "pager.pagesz=20" \
+  -d "modalities=image" \
+  -d "sort_by=recommend" \
+  -d "is_like=false" \
+  -d "is_collect=false" \
+  -H "Authorization: Token $VIDU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "User-Agent: viduclawbot/1.0 (+$VIDU_BASE_URL)"
+```
+
+Present results as a list: `element.id`, `element.version`, `element.name`, `element.recaption.description` (truncated), `share.category_display`.
 
 ---
 
