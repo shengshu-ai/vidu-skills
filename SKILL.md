@@ -2,7 +2,7 @@
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API with curl. Use when the user wants text-to-image (文生图), text-to-video (文生视频), image-to-video (图生视频), head-tail-image-to-video (首尾帧生视频), reference-to-image (参考生图), reference-to-video (参考生视频), Create References (创建参考资料), or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
 compatibility: Requires ability to run curl (or equivalent HTTP client). Set VIDU_TOKEN in the environment; VIDU_BASE_URL optional (default https://service.vidu.cn). See references/api_reference.md for full API.
-version: 1.0.6
+version: 1.0.7
 url: https://www.vidu.cn/
 secrets:
   - VIDU_TOKEN
