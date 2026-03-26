@@ -1,34 +1,52 @@
 # Vidu Task Parameters Reference
 
-## Task Support Matrix
-
-| Task Type | CLI Command | Model Version | Duration | Resolution | Aspect Ratio | Transition | Notes |
-|-----------|-------------|---------------|----------|------------|--------------|-----------|-------|
-| text-to-image | `vidu-cli task submit` type: text2image | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | - |
-| text-to-video | `vidu-cli task submit` type: text2video | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2-8s; 3.2: 1-16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: pro/speed; 3.0/3.1: N/A | - |
-| image-to-video | `vidu-cli upload` + `vidu-cli task submit` type: img2video | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2-8s; 3.2: 1-16s | 1080p | From image (don't pass) | 3.0: creative/stable; 3.1/3.2: pro/speed | 1 image + text |
-| head-tail-image-to-video | `vidu-cli upload` (2x) + `vidu-cli task submit` type: headtailimg2video | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2-8s; 3.2: 1-16s | 1080p | N/A | 3.0: creative/stable; 3.1/3.2: pro/speed | 2 images + text |
-| reference-to-image | `vidu-cli element search` + `vidu-cli task submit` type: reference2image | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | image+reference ≤7 |
-| reference-to-video | `vidu-cli element search` + `vidu-cli task submit` type: character2video | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2-8s; 3.1_pro: -1/2-8s; 3.2: 1-16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | N/A | image+reference ≤7 |
+Daily use: **`vidu-cli`** flags and the sections below.
 
 ---
 
-## CLI Commands
+## Task Support Matrix
 
-### Upload Image
+| Task Type | `--type` | Model Version | Duration | Resolution | Aspect Ratio | Transition | Images |
+|-----------|----------|---------------|----------|------------|--------------|------------|--------|
+| text2image | `text2image` | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | 0 |
+| text2video | `text2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: pro/speed | 0 |
+| img2video | `img2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1+: pro/speed | exactly 1 |
+| headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
+| reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
+| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | N/A | images + materials: 1–7 |
+
+**Capability notes**
+
+- **text-to-image**: Text only.
+- **text-to-video**: Text only.
+- **image-to-video**: One image + text; aspect ratio comes from the image.
+- **head-tail-image-to-video**: Two images (start, end) + text.
+- **reference2image (参考生图)** and **character2video (参考生视频)** — same input rule: **image count + material (主体) count must be ≥ 1 and ≤ 7** (each `--image` and each `--material` counts toward the total). **Text prompt (`--prompt`) is required** for both (cannot omit or leave empty).
+- You **do not** need `element create` when using **`--image` only**. Use **`--material`** / `[@name]` when using a saved or community reference element (you may combine images and materials as long as the total stays in 1–7).
+- **Create References**: `vidu-cli element create --name ... --image ...` runs check → preprocess → create; returns element `id` and `version`.
+- **List personal references**: `vidu-cli element list [--keyword kw]`.
+- **Search community references**: `vidu-cli element search --keyword "..."`.
+
+---
+
+## CLI commands (overview)
+
+### Upload image
+
 ```bash
 vidu-cli upload <image_path>
 ```
-- Auto-detects image dimensions
-- Compresses if > 10MB
-- Returns: `upload_id`, `ssupload_uri`
 
-### Submit Task
+- Detects dimensions; compresses if larger than 10MB.
+- Returns: `upload_id`, `ssupload_uri`.
+
+### Submit task
+
 ```bash
 vidu-cli task submit \
   --type <task_type> \
   --prompt "text prompt" \
-  [--image "ssupload:?id=..."]  \
+  [--image <path|url|ssupload_uri>] \
   [--material "name:id:version"] \
   --duration <seconds> \
   --model-version <version> \
@@ -41,135 +59,364 @@ vidu-cli task submit \
   [--schedule-mode <mode>]
 ```
 
-`--image` and `--material` can be specified multiple times.
+`--image` and `--material` may be repeated where applicable.
 
-### Query Task
+### Query task
+
 ```bash
 vidu-cli task get <task_id>
 ```
-- Returns: `state` (created/queueing/processing/success/failed), `media_urls` (if success), `err_code`/`err_msg` (if failed)
 
-### Stream Task Status (SSE)
+Returns: `state`, `media_urls` (if success), `err_code` / `err_msg` (if failed).
+
+### Stream task status (SSE)
+
 ```bash
 vidu-cli task sse <task_id>
 ```
 
-### Search Community References
+Streams events to stdout; can be verbose for agents.
+
+### Search community references
+
 ```bash
 vidu-cli element search --keyword "keyword" [--pagesz 20]
 ```
 
-### Create Reference
+---
+
+## Task types (`--type`)
+
+| Value | Meaning |
+|-------|---------|
+| `text2image` | Text to image |
+| `text2video` | Text to video |
+| `img2video` | Image to video |
+| `headtailimg2video` | Head and tail frames to video |
+| `reference2image` | Reference to image |
+| `character2video` | Reference to video |
+
+---
+
+## CLI settings (`task submit`)
+
+### `--model-version` (required)
+
+| Value | Maps to | Notes |
+|-------|---------|-------|
+| `3.0` | Q1 | |
+| `3.1` | Q2 | text2image, reference2image, 2–8s video models |
+| `3.2` | Q3 | 1–16s video models |
+| `3.1_pro` | Q2 pro | `character2video` only |
+| `3.2_fast_m` | Q3 fast | text2image / reference2image only (2k/4k) |
+| `3.2_pro_m` | Q3 pro | text2image / reference2image only (2k/4k) |
+
+### `--duration`
+
+- **text2image**, **reference2image**: `0`
+- **text2video**, **img2video**, **headtailimg2video**, **character2video**: valid ranges depend on `model_version` (see matrix above; e.g. 3.1 often 2–8s, 3.2 often 1–16s)
+
+### `--resolution` (optional; default 1080p where applicable)
+
+- **text2image**: `1080p` (3.1); `2k` / `4k` with 3.2_fast_m / 3.2_pro_m
+- **reference2image**: `1080p`, `2k`, `4k`
+- **Video tasks**: `1080p` only
+
+### `--aspect-ratio` (optional; task-dependent)
+
+- **text2image**, **reference2image**: `4:3`, `3:4`, `1:1`, `9:16`, `16:9`
+- **text2video**, **character2video**: `16:9`, `9:16`, `1:1`, `4:3`, `3:4`
+- **img2video**: do not pass (derived from image)
+- **headtailimg2video**: do not pass
+
+### `--transition` (optional; video)
+
+- **text2video** (3.0 / 3.2): `pro`, `speed`
+- **text2video** (3.1): do not pass
+- **img2video**, **headtailimg2video**: `pro`, `speed` (3.0: creative/stable per matrix)
+- **Reference tasks**, **text2image**: do not pass
+
+### Other flags (when supported by CLI)
+
+- `sample_count` / `--sample-count`: default 1
+- `schedule_mode` / `--schedule-mode`: default `normal`
+- `codec` / `--codec`: default `h265`
+- `use_trial`: if exposed by CLI
+- `movement_amplitude` / `--movement-amplitude`: e.g. `auto`
+
+---
+
+## CLI vs raw JSON (background)
+
+Use **`vidu-cli` flags only** — do not hand-craft request bodies or invent extra parameters.
+
+| CLI | Role |
+|-----|------|
+| `--prompt` | Text prompt (respect length limits, e.g. up to 4096 chars) |
+| `--image` | Images (paths, URLs, or `ssupload` URIs after upload) |
+| `--material` | Reference material ids |
+| `input.enhance` / recaption | **No CLI flag** — handled internally by `vidu-cli` (do not invent a flag) |
+
+---
+
+## CLI examples
+
+### 1. text-to-video (文生视频)
+
 ```bash
-vidu-cli upload image1.jpg
-# → {"ok": true, "ssupload_uri": "ssupload:?id=123"}
+vidu-cli task submit \
+  --type text2video \
+  --prompt "A cat walks in the snow at sunset" \
+  --duration 5 \
+  --model-version 3.2 \
+  --aspect-ratio 16:9 \
+  --transition pro \
+  --resolution 1080p
+```
 
-vidu-cli element preprocess \
-  --name "my_character" \
-  --image "ssupload:?id=123"
+Response: `{"ok": true, "task_id": "...", "trace_id": "..."}`
 
+### 2. text-to-image (文生图)
+
+```bash
+vidu-cli task submit \
+  --type text2image \
+  --prompt "A beautiful sunset over the ocean" \
+  --duration 0 \
+  --model-version 3.1 \
+  --resolution 2k
+```
+
+### 3. image-to-video (图生视频)
+
+```bash
+vidu-cli task submit \
+  --type img2video \
+  --prompt "The cat starts running" \
+  --image /path/to/image.jpg \
+  --duration 5 \
+  --model-version 3.2 \
+  --resolution 1080p
+```
+
+`--image` accepts local path, URL, or `ssupload:?id=...`.
+
+### 4. head-tail-image-to-video (首尾帧生视频)
+
+```bash
+vidu-cli task submit \
+  --type headtailimg2video \
+  --prompt "Smooth transition between scenes" \
+  --image start.jpg \
+  --image end.jpg \
+  --duration 5 \
+  --model-version 3.2 \
+  --resolution 1080p
+```
+
+### 5. reference-to-video (参考生视频)
+
+**With a saved reference (subject)** — `[@name]` matches `--material` (count toward the 1–7 total):
+
+```bash
+vidu-cli task submit \
+  --type character2video \
+  --prompt "[@aliya] walks in the garden" \
+  --material "aliya:3073530415201165:1765430214" \
+  --duration 5 \
+  --model-version 3.2 \
+  --aspect-ratio 16:9 \
+  --resolution 1080p
+```
+
+**Reference + extra image(s)** — mixed `--material` and `--image` (repeat either flag; combined count ≤ 7):
+
+```bash
+vidu-cli task submit \
+  --type character2video \
+  --prompt "[@aliya] walks in the garden" \
+  --material "aliya:3073530415201165:1765430214" \
+  --image /path/to/auxiliary.jpg \
+  --duration 5 \
+  --model-version 3.2 \
+  --aspect-ratio 16:9 \
+  --resolution 1080p
+```
+
+**Images only (no subject / no `element create`)** — text + `--image`; repeat `--image` for multiple images (total with any materials ≤ 7):
+
+```bash
+vidu-cli task submit \
+  --type character2video \
+  --prompt "The character turns and walks toward the camera" \
+  --image /path/to/ref_sheet.jpg \
+  --duration 5 \
+  --model-version 3.2 \
+  --aspect-ratio 16:9 \
+  --resolution 1080p
+```
+
+### 6. reference-to-image (参考生图)
+
+Same limits as **character2video**: **images + materials between 1 and 7**, **non-empty `--prompt` required**.
+
+**With a saved reference:**
+
+```bash
+vidu-cli task submit \
+  --type reference2image \
+  --prompt "[@aliya] portrait in watercolor style" \
+  --material "aliya:3073530415201165:1765430214" \
+  --duration 0 \
+  --model-version 3.1 \
+  --aspect-ratio 16:9 \
+  --resolution 2k
+```
+
+**Reference + image(s)** — optional extra `--image` lines (combined count ≤ 7):
+
+```bash
+vidu-cli task submit \
+  --type reference2image \
+  --prompt "[@aliya] portrait in watercolor style" \
+  --material "aliya:3073530415201165:1765430214" \
+  --image /path/to/auxiliary.jpg \
+  --duration 0 \
+  --model-version 3.1 \
+  --aspect-ratio 16:9 \
+  --resolution 2k
+```
+
+**Images only (no subject)** — still must pass `--prompt`:
+
+```bash
+vidu-cli task submit \
+  --type reference2image \
+  --prompt "Portrait in watercolor style, soft lighting" \
+  --image /path/to/ref.jpg \
+  --duration 0 \
+  --model-version 3.1 \
+  --aspect-ratio 16:9 \
+  --resolution 2k
+```
+
+### 7. Query task result
+
+```bash
+vidu-cli task get "$TASK_ID"
+```
+
+- `state`: `success` | `failed` | `processing` | ...
+- **success**: `media_urls` present
+- **failed**: `err_code`, `err_msg` — note `ok` may still be `true` with `state: failed`
+- **processing**: poll again later
+
+### 8. Task SSE (optional)
+
+```bash
+vidu-cli task sse "$TASK_ID"
+```
+
+Streams SSE to stdout; may produce large output.
+
+### 9. Image upload (optional)
+
+```bash
+vidu-cli upload /path/to/image.jpg
+```
+
+Returns: `upload_id`, `ssupload_uri`. Usually unnecessary — `task submit --image` and `element create --image` accept paths and URLs directly.
+
+---
+
+## Material elements (references)
+
+### Create reference element
+
+One command performs name check → preprocess (AI description/style) → create:
+
+```bash
 vidu-cli element create \
-  --id "<id_from_preprocess>" \
   --name "my_character" \
-  --image "ssupload:?id=123" \
-  --description "description text"
+  --image image1.jpg \
+  --image image2.jpg
 ```
 
----
+With custom description and style:
 
-## Input Parameters
+```bash
+vidu-cli element create \
+  --name "my_character" \
+  --image image1.jpg \
+  --description "A young woman with long black hair" \
+  --style "写实"
+```
 
-### type (required)
-- `text2image` — Text to image
-- `text2video` — Text to video
-- `img2video` — Image to video
-- `headtailimg2video` — Head-tail frames to video
-- `reference2image` — Reference to image
-- `character2video` — Reference to video
+**Constraints**
 
-### input.prompts (required, array)
-- **Text prompt**: `{"type": "text", "content": "<string>"}` (max 4096 chars)
-- **Image prompt**: `{"type": "image", "content": "ssupload:?id=<upload_id>"}`
+- 1–3 images required
+- `--image`: local path, URL, or `ssupload` URI
+- `--description`: optional, 1–1280 chars (AI default if omitted)
+- `--style`: optional, max 64 chars (AI default if omitted)
+- Name must be unique (checked automatically)
 
-Order for headtailimg2video: [text, image1, image2]
-Order for reference tasks: text required; image + material combined ≤7
+Returns: `id`, `version` (for `--material` / `[@name]` usage).
 
-### input.enhance (required)
-- Must be `true` (enables recaption)
+### List personal elements
 
-### input.editor_mode (optional)
-- Default: `"normal"`
+```bash
+vidu-cli element list --keyword "关键词"
+```
 
----
+Example shape: `elements: [{ id, version, name, ... }], next_page_token`.
 
-## Settings Parameters
+### Search community elements
 
-### model_version (required)
-- `3.0` — Q1
-- `3.1` — Q2 (text2image, reference2image, 2-8s videos)
-- `3.2` — Q3 (1-16s videos)
-- `3.1_pro` — Q2 pro (character2video only)
-- `3.2_fast_m` — Q3 fast mode (text2image/reference2image only, 2k/4k)
-- `3.2_pro_m` — Q3 pro mode (text2image/reference2image only, 2k/4k)
+```bash
+vidu-cli element search --keyword "老虎" --pagesz 20
+```
 
-### duration (required for video, 0 for image)
-- text2image: `0`
-- text2video/img2video/headtailimg2video/character2video:
-  - 3.0/3.2: 1-16 seconds
-  - 3.1: 2-8 seconds
-- reference2image: `0`
-
-### resolution (optional, default 1080p)
-- text2image: `1080p` (3.1), `2k`/`4k` (3.2_fast_m)
-- reference2image: `1080p`, `2k`, `4k`
-- video tasks: `1080p` only
-
-### aspect_ratio (optional, task-dependent)
-- text2image/reference2image: `4:3`, `3:4`, `1:1`, `9:16`, `16:9`
-- text2video/character2video: `16:9`, `9:16`, `1:1`, `4:3`, `3:4`
-- img2video: **don't pass** (derived from image)
-- headtailimg2video: **don't pass**
-
-### transition (optional, video only)
-- text2video (3.0/3.2): `pro` (cinematic), `speed` (fast)
-- text2video (3.1): **don't pass**
-- img2video/headtailimg2video: `pro`, `speed`
-- reference tasks: **don't pass**
-
-### Other settings
-- `sample_count`: 1 (default)
-- `schedule_mode`: `normal` (default)
-- `codec`: `h265` (default)
-- `use_trial`: `true`/`false`
-- `movement_amplitude`: `auto` (optional)
+Present results with `id`, `version`, `name`, `description`, `category` when available.
 
 ---
 
-## Error Handling
+## Prompt tips
 
-All CLI commands return structured JSON:
+- **text-to-image**: Subject, style, lighting, composition.
+- **text-to-video**: Scene + action; optional camera language (e.g. 镜头缓慢左移, 特写跟拍).
+- **image-to-video**: Describe motion or change, not only static description.
+- **head-tail-image-to-video**: Similar frames → smoother transition; very different frames → stronger morph.
+- **reference-to-image / reference-to-video**: **reference2image** and **character2video** both require a **non-empty text prompt**. **Image count + material count** must be **≥ 1 and ≤ 7**. You may use images only, materials only, or a mix; without `element create` when using images only. With a saved or community reference, use `[@reference_name]` and matching `--material`.
 
-**Success:**
+---
+
+## CLI stdout errors (canonical)
+
+All commands return one JSON line on stdout.
+
+**Success (submit)**
+
 ```json
-{"ok": true, "task_id": "...", ...}
+{"ok": true, "task_id": "...", "trace_id": "..."}
 ```
 
-**Failure:**
+**Failure (CLI / transport / HTTP)**
+
 ```json
-{"ok": false, "error": {"type": "client_error|http_error|network_error", "message": "...", "http_status": 422, "code": "invalid_param"}}
+{"ok": false, "error": {"type": "client_error|http_error|network_error|parse_error", "message": "...", "http_status": 422, "code": "invalid_param"}}
 ```
 
-**Never guess error causes** — read the `error` object exactly as returned.
+**Never guess** — report `error` fields exactly. Retry behavior: **errors_and_retry.md**.
 
 ---
 
-## Validation Rules
+## Validation rules
 
-- `type` must be valid task type
-- `model_version` must support the task type
-- `duration` must be in valid range for model + task
-- `resolution` must be supported by task type
-- `aspect_ratio` must not be passed for img2video/headtailimg2video
-- `transition` must not be passed for reference tasks or text2image
-- `enhance` must be `true`
-- Image + reference count ≤ 7 for reference tasks
+- `type` must match a supported task.
+- `model_version` must be allowed for that task (see matrix).
+- `duration` must fit model + task.
+- `resolution` must be supported for the task type.
+- Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
+- Do not pass `transition` for reference tasks or **text2image**.
+- For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**.
+- API-level `input.enhance` / recaption: **no manual CLI field** — rely on `vidu-cli` defaults.

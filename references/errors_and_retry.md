@@ -1,40 +1,47 @@
-# Errors and Retry Strategy
+# Errors and Retry Strategy (vidu-cli)
+
+CLI JSON shapes: **parameters.md** (canonical). This file focuses on **task lifecycle** and **retry** behavior.
+
+---
 
 ## Task state lifecycle
 
-States (typical order): `created` → `queueing` → `preparation` → `scheduling` → `processing` → **success** or **failed** (or `canceled`).
+Typical order: `created` → `queueing` → `preparation` → `scheduling` → `processing` → **`success`** or **`failed`** (or `canceled`).
 
-Only **success** and **failed** are terminal. Do not treat other states as completion.
-
----
-
-## When state is failed
-
-- **err_code** (string): Server-defined error code. Present in GET task response.
-- **err_msg** (string): Human-readable message when available (e.g. in full task object).
-
-Report to the user that the task failed and, if available, the reason (err_code and/or err_msg). Do not return a video URL.
+Terminal states: **`success`**, **`failed`**, **`canceled`**. Do not treat other states as final.
 
 ---
 
-## Query task status/result
+## When `state` is `failed`
 
-There is **no wait mode**: after submit you get task_id; the caller queries when needed. Use **GET** `/vidu/v1/tasks/{task_id}` (or **get_task_result.py** \<task_id\>) to get current state and, when success, video URL(s). GET is read-only and safe to retry.
+- **`err_code`**: Server-defined code (in `vidu-cli task get` response when available).
+- **`err_msg`**: Human-readable message when present.
 
----
-
-## Network and client errors
-
-- **4xx on submit**: Check body (type, input.prompts, settings) and token. Do not retry same body blindly; fix and resubmit.
-- **5xx or connection error on submit**: Retry with backoff (e.g. 1s, 2s, 4s) up to 3 times. If all fail, report network/server error to the user.
-- **5xx or connection error on upload (CreateUpload / PUT / FinishUpload)**: Retry the failing step. For PUT, ensure you resend the same image and headers.
-- **Timeout on GET task**: Retry once or twice; if still failing, report that the result could not be fetched and suggest retrying later.
+Tell the user the task failed and pass through **`err_code`** / **`err_msg`**. Do not return media URLs.
 
 ---
 
-## Summary for the agent
+## Polling results
 
-- Treat only **success** / **failed** / **canceled** as terminal.
-- On **failed**: return err_code/err_msg to the user, no video link.
-- No built-in wait: submit returns task_id; caller uses GET task (or get_task_result.py) to query status/result when needed.
-- On submit or upload client/network errors: retry with backoff a few times; then report clearly to the user.
+There is **no built-in wait** in the CLI: `vidu-cli task submit` returns `task_id`; the caller runs **`vidu-cli task get <task_id>`** when needed.
+
+- **`vidu-cli task get`** is read-only and safe to repeat (poll until terminal state or timeout).
+- **`vidu-cli task sse <task_id>`** streams state updates; optional alternative to polling.
+
+---
+
+## Network and client errors (CLI `ok: false`)
+
+- **4xx on submit**: Inspect `error.type`, `code`, `message`; fix parameters or token. Do not retry the same invalid body without changes.
+- **5xx or connection error on submit**: Retry with backoff (e.g. 1s, 2s, 4s), limited attempts (e.g. up to 3). If still failing, report the error to the user.
+- **Upload / network errors** during image handling: Same idea — bounded retries, then surface **`error`** fields verbatim.
+- **Timeouts on `task get`**: Retry once or twice; if still failing, report that the result could not be fetched and suggest trying again later.
+
+---
+
+## Summary for agents
+
+- Treat only **`success`** / **`failed`** / **`canceled`** as terminal (for task `state`).
+- On **`failed`**: return **`err_code`** / **`err_msg`**, no media link.
+- **No built-in wait**: poll with **`vidu-cli task get`** (or SSE) until done.
+- On transport or ambiguous failures: limited backoff retries, then report **`error`** from stdout exactly as **`parameters.md`** describes.
