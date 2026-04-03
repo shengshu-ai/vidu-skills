@@ -14,6 +14,7 @@ Daily use: **`vidu-cli`** flags and the sections below.
 | headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
 | reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
 | character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)** | images + materials: 1–7 |
+| lip_sync | `task lip-sync` | N/A | auto (from text/audio) | 1080p | from video | N/A | 1 video + (text OR audio) |
 
 **Capability notes**
 
@@ -22,6 +23,7 @@ Daily use: **`vidu-cli`** flags and the sections below.
 - **image-to-video**: One image + text; aspect ratio comes from the image.
 - **head-tail-image-to-video**: Two images (start, end) + text.
 - **reference2image (参考生图)** and **character2video (参考生视频)** — same input rule: **image count + material (主体) count must be ≥ 1 and ≤ 7** (each `--image` and each `--material` counts toward the total). **Text prompt (`--prompt`) is required** for both (cannot omit or leave empty).
+- **lip-sync (口型同步)**: Drive video mouth movement with text-to-speech or audio file. Two modes: **text mode** (TTS with voice selection) or **audio mode** (custom audio file). Video: MP4/MOV/AVI, ≤500MB. Audio: MP3/WAV/AAC/M4A, ≤100MB.
 - You **do not** need `element create` when using **`--image` only**. Use **`--material`** / `[@name]` when using a saved or community reference element (you may combine images and materials as long as the total stays in 1–7).
 - **Create References**: `vidu-cli element create --name ... --image ...` runs check → preprocess → create; returns element `id` and `version`.
 - **List personal references**: `vidu-cli element list [--keyword kw]`.
@@ -95,6 +97,8 @@ vidu-cli element search --keyword "keyword" [--pagesz 20]
 | `headtailimg2video` | Head and tail frames to video |
 | `reference2image` | Reference to image |
 | `character2video` | Reference to video |
+
+**Note**: `lip_sync` uses a different command: `vidu-cli task lip-sync` (not `task submit --type lip_sync`).
 
 ---
 
@@ -305,7 +309,55 @@ vidu-cli task submit \
   --resolution 2k
 ```
 
-### 7. Query task result
+### 7. lip-sync (口型同步)
+
+**Text mode (TTS with voice selection)**:
+
+```bash
+vidu-cli task lip-sync \
+  --video /path/to/video.mp4 \
+  --text "Hello, welcome to Vidu!" \
+  --voice-id English_Aussie_Bloke \
+  --speed 1.0 \
+  --volume 1.0 \
+  --codec h265
+```
+
+**Audio mode (custom audio file)**:
+
+```bash
+vidu-cli task lip-sync \
+  --video /path/to/video.mp4 \
+  --audio /path/to/audio.mp3 \
+  --codec h265
+```
+
+**Constraints**:
+- Video: MP4/MOV/AVI, ≤500MB
+- Audio: MP3/WAV/AAC/M4A, ≤100MB
+- Text: Chinese 2–1000 chars, English 4–2000 chars
+- `--text` and `--audio` are mutually exclusive (use one or the other)
+- `--speed`: 0.5–2.0 (default 1.0, text mode only)
+- `--volume`: 0.5–2.0 or 0 for server default (text mode only)
+- `--voice-id`: default `English_Aussie_Bloke` (90+ voices available, see voice list below)
+- Duration is auto-calculated from text length or audio file
+
+**Available voice IDs** (partial list, 90+ total):
+- English: `English_Aussie_Bloke`, `English_Trustworthy_Man`, `English_Graceful_Lady`, `English_Whispering_girl`, `English_Diligent_Man`, `English_Gentle-voiced_man`
+- Chinese: `male-qn-qingse`, `male-qn-jingying`, `male-qn-badao`, `male-qn-daxuesheng`, `female-shaonv`, `female-yujie`, `female-chengshu`, `female-tianmei`
+- Premium (精品): `male-qn-qingse-jingpin`, `female-shaonv-jingpin`, etc.
+- Cartoon: `clever_boy`, `cute_boy`, `lovely_girl`, `cartoon_pig`
+- Cantonese: `Cantonese_ProfessionalHost（F)`, `Cantonese_GentleLady`, `Cantonese_ProfessionalHost（M)`, `Cantonese_PlayfulMan`
+
+To get the complete list of all 90+ voice IDs:
+
+```bash
+vidu-cli task lip-sync-voices
+```
+
+Returns: `{"ok": true, "count": 90+, "voice_ids": [...]}`
+
+### 8. Query task result
 
 ```bash
 vidu-cli task get "$TASK_ID"
@@ -316,7 +368,7 @@ vidu-cli task get "$TASK_ID"
 - **failed**: `err_code`, `err_msg` — note `ok` may still be `true` with `state: failed`
 - **processing**: poll again later
 
-### 8. Task SSE (optional)
+### 9. Task SSE (optional)
 
 ```bash
 vidu-cli task sse "$TASK_ID"
@@ -324,7 +376,7 @@ vidu-cli task sse "$TASK_ID"
 
 Streams SSE to stdout; may produce large output.
 
-### 9. Image upload (optional)
+### 10. Image upload (optional)
 
 ```bash
 vidu-cli upload /path/to/image.jpg
@@ -392,6 +444,7 @@ Present results with `id`, `version`, `name`, `description`, `category` when ava
 - **image-to-video**: Describe motion or change, not only static description.
 - **head-tail-image-to-video**: Similar frames → smoother transition; very different frames → stronger morph.
 - **reference-to-image / reference-to-video**: **reference2image** and **character2video** both require a **non-empty text prompt**. **Image count + material count** must be **≥ 1 and ≤ 7**. You may use images only, materials only, or a mix; without `element create` when using images only. With a saved or community reference, use `[@reference_name]` and matching `--material`.
+- **lip-sync**: Choose text mode for TTS with voice selection, or audio mode for custom audio. Text mode auto-calculates duration from text length (Chinese: ~5 chars/sec, English: ~10 chars/sec). Audio mode reads duration from audio file metadata. Video must contain visible face/mouth for best results.
 
 ---
 

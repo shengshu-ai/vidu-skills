@@ -1,8 +1,8 @@
 ---
 name: vidu-skills
-description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image (文生图), text-to-video (文生视频), image-to-video (图生视频), head-tail-image-to-video (首尾帧生视频), reference-to-image (参考生图), reference-to-video (参考生视频), Create References (创建参考资料), or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
+description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image (文生图), text-to-video (文生视频), image-to-video (图生视频), head-tail-image-to-video (首尾帧生视频), reference-to-image (参考生图), reference-to-video (参考生视频), lip-sync (口型同步), Create References (创建参考资料), or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
 compatibility: Requires vidu-cli >= 0.2.0 (install via `cargo install vidu-cli`). Set VIDU_TOKEN in the environment; VIDU_BASE_URL optional (default https://service.vidu.cn).
-version: 1.3.1
+version: 1.3.2
 url: https://www.vidu.cn/
 secrets:
   - VIDU_TOKEN
@@ -47,6 +47,9 @@ Generate AI videos and images with Vidu (生数) via `vidu-cli` — text-to-imag
 | `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). |
 | `vidu-cli task get <task_id>` | Query task → `state`, `media_urls` when successful |
 | `vidu-cli task sse <task_id>` | Stream SSE state events |
+| `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id` |
+| `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id` |
+| `vidu-cli task lip-sync-voices` | List all available voice IDs for lip-sync |
 | `vidu-cli element create --name ... --image ... [--description ...] [--style ...]` | Create reference element (check → preprocess → create). Returns `id`, `version`. |
 | `vidu-cli element check --name ...` | Check name availability |
 | `vidu-cli element list [--keyword kw]` | List personal elements |
@@ -68,6 +71,7 @@ Generate AI videos and images with Vidu (生数) via `vidu-cli` — text-to-imag
 - **head-tail-image-to-video (首尾帧生视频)** — Start + end frames + text
 - **reference-to-image (参考生图)** — **Images + materials: 1–7** total; **text prompt required**; can be images-only, materials-only, or mixed; images-only needs no `element create`
 - **reference-to-video (参考生视频)** — Same rule: **1–7** total; **text prompt required**
+- **lip-sync (口型同步)** — Drive video mouth movement with text-to-speech or audio file
 - **Create References (创建主体)** — `element create` (single command)
 - **Search Community References (搜索社区主体库)** — `element search`
 - **Query task (查询任务)** — `task get` / `task sse`
