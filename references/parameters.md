@@ -13,7 +13,7 @@ Daily use: **`vidu-cli`** flags and the sections below.
 | img2video | `img2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1+: pro/speed | exactly 1 |
 | headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
 | reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
-| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | N/A | images + materials: 1–7 |
+| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)** | images + materials: 1–7 |
 
 **Capability notes**
 
@@ -134,7 +134,9 @@ vidu-cli element search --keyword "keyword" [--pagesz 20]
 - **text2video** (3.0 / 3.2): `pro`, `speed`
 - **text2video** (3.1): do not pass
 - **img2video**, **headtailimg2video**: `pro`, `speed` (3.0: creative/stable per matrix)
-- **Reference tasks**, **text2image**: do not pass
+- **character2video** (3.2): `pro`, `speed` (**required** for model version 3.2)
+- **character2video** (3.0, 3.1, 3.1_pro): do not pass
+- **reference2image**, **text2image**: do not pass
 
 ### Other flags (when supported by CLI)
 
@@ -226,6 +228,7 @@ vidu-cli task submit \
   --duration 5 \
   --model-version 3.2 \
   --aspect-ratio 16:9 \
+  --transition pro \
   --resolution 1080p
 ```
 
@@ -240,6 +243,7 @@ vidu-cli task submit \
   --duration 5 \
   --model-version 3.2 \
   --aspect-ratio 16:9 \
+  --transition speed \
   --resolution 1080p
 ```
 
@@ -253,6 +257,7 @@ vidu-cli task submit \
   --duration 5 \
   --model-version 3.2 \
   --aspect-ratio 16:9 \
+  --transition pro \
   --resolution 1080p
 ```
 
