@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image (文生图), text-to-video (文生视频), image-to-video (图生视频), head-tail-image-to-video (首尾帧生视频), reference-to-image (参考生图), reference-to-video (参考生视频), lip-sync (口型同步), text-to-speech (文字转语音), Create References (创建参考资料), or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-compatibility: Requires vidu-cli ≥ 0.2.4 (install via `npm install -g vidu-cli`). Node.js >=14 required.
+compatibility: Requires vidu-cli latest (install via `npm install -g vidu-cli@latest`). Node.js >=14 required.
 version: 1.4.0
 url: https://www.vidu.cn/
 secrets:
@@ -45,8 +45,7 @@ Generate AI videos and images with Vidu (生数) via `vidu-cli` — text-to-imag
 |---------|---------|
 | `vidu-cli upload <image_path>` | Upload image → `upload_id`, `ssupload_uri` |
 | `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). |
-| `vidu-cli task get <task_id>` | Query task → `state`, `media_urls` when successful |
-| `vidu-cli task sse <task_id>` | Stream SSE state events |
+| `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task → `state`, `type`, `model`; use `--output` to download media on success |
 | `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id` |
 | `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id` |
 | `vidu-cli task lip-sync-voices` | 列出 lip-sync 可用声音（~86个，中/英/粤/卡通等） |
@@ -77,15 +76,15 @@ Generate AI videos and images with Vidu (生数) via `vidu-cli` — text-to-imag
 - **text-to-speech (文字转语音)** — Convert text to speech audio via `task tts`
 - **Create References (创建主体)** — `element create` (single command)
 - **Search Community References (搜索社区主体库)** — `element search`
-- **Query task (查询任务)** — `task get` / `task sse`
+- **Query task (查询任务)** — `task get [--output <dir>]`
 
 ---
 
 ## Setup
 
-1. `npm install -g vidu-cli` (requires Node.js >=14; postinstall auto-downloads the platform binary)
+1. `npm install -g vidu-cli@latest` (requires Node.js >=14; postinstall auto-downloads the platform binary)
 2. Obtain `VIDU_TOKEN` (e.g. Vidu console).
-3. `export VIDU_TOKEN="..."` — required; `export VIDU_BASE_URL=...` if not using default region.
+3. Set `VIDU_TOKEN` environment variable (required); set `VIDU_BASE_URL` if not using default region.
 4. Verify: `vidu-cli task submit --help`
 
 ---
@@ -110,15 +109,15 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 1. Pick capability → map to `--type` and options using **references/parameters.md** (matrix + validation).
 2. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; optional `[@name]` in prompt per **references/parameters.md**.
 3. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
-4. `vidu-cli task get <task_id>` until `success` or `failed` (or use `task sse` if appropriate).
-5. On success return `media_urls`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
+4. `vidu-cli task get <task_id>` until `success` or `failed`; use `--output <dir>` to download media on success.
+5. On success return `downloaded_files` (if `--output` used) or prompt user to re-run with `--output`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
 
 ---
 
 ## Output to the user
 
 - After **submit**: return **`task_id`** and **`trace_id`**; state that processing is in progress.
-- After **query**: if `state` is success, return **`media_urls`**; if failed, return **`err_code`** and **`err_msg`** exactly (note: response may still have `ok: true` while `state` is `failed`).
+- After **query**: if `state` is success, return **`downloaded_files`** (if `--output` was used) or the `task_id` with a note to re-run with `--output <dir>` to download; if failed, return **`err_code`** and **`err_msg`** exactly (note: response may still have `ok: true` while `state` is `failed`).
 - On **CLI failure** (`ok: false`): report `error.type`, `http_status`, `code`, `message` exactly — **do not infer causes**.
 
 ---
@@ -134,4 +133,4 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 
 ## Fallback (no Node.js / npm)
 
-If `node` / `npm` / `vidu-cli` cannot be installed, this skill cannot run. Require **vidu-cli ≥ 0.2.4** (via `npm install -g vidu-cli`, Node.js >=14) and point users to **references/parameters.md** for parameter details.
+If `node` / `npm` / `vidu-cli` cannot be installed, this skill cannot run. Require **vidu-cli latest** (via `npm install -g vidu-cli@latest`, Node.js >=14) and point users to **references/parameters.md** for parameter details.

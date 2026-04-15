@@ -68,18 +68,12 @@ vidu-cli task submit \
 ### Query task
 
 ```bash
-vidu-cli task get <task_id>
+vidu-cli task get <task_id> [--output/-o <dir>]
 ```
 
-Returns: `state`, `media_urls` (if success), `err_code` / `err_msg` (if failed).
+Returns: `task_id`, `state`, `type`, `model`; on failed: `err_code`, `err_msg`.
 
-### Stream task status (SSE)
-
-```bash
-vidu-cli task sse <task_id>
-```
-
-Streams events to stdout; can be verbose for agents.
+`--output <dir>` (optional): when state is `success`, downloads all media files to `<dir>` and returns `downloaded_files` (list of local paths). If state is not `success`, returns `download_skipped: "task not ready"`.
 
 ### Search community references
 
@@ -391,19 +385,21 @@ vidu-cli task get "$TASK_ID"
 ```
 
 - `state`: `success` | `failed` | `processing` | ...
-- **success**: `media_urls` present
+- Response always includes: `task_id`, `state`, `type`, `model`
 - **failed**: `err_code`, `err_msg` — note `ok` may still be `true` with `state: failed`
 - **processing**: poll again later
 
-### 10. Task SSE (optional)
+Download media on success:
 
 ```bash
-vidu-cli task sse "$TASK_ID"
+vidu-cli task get "$TASK_ID" --output ./downloads
 ```
 
-Streams SSE to stdout; may produce large output.
+- Downloads all media files to `./downloads/` as `{task_id}_{i}.mp4`
+- Returns `downloaded_files` (list of local paths)
+- If not yet `success`: returns `download_skipped: "task not ready"`
 
-### 11. Image upload (optional)
+### 10. Image upload (optional)
 
 ```bash
 vidu-cli upload /path/to/image.jpg

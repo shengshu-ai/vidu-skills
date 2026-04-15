@@ -26,7 +26,7 @@ Tell the user the task failed and pass through **`err_code`** / **`err_msg`**. D
 There is **no built-in wait** in the CLI: `vidu-cli task submit` returns `task_id`; the caller runs **`vidu-cli task get <task_id>`** when needed.
 
 - **`vidu-cli task get`** is read-only and safe to repeat (poll until terminal state or timeout).
-- **`vidu-cli task sse <task_id>`** streams state updates; optional alternative to polling.
+- **`vidu-cli task get <task_id> --output <dir>`** downloads media files on success.
 
 ---
 
