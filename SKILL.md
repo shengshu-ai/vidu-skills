@@ -1,13 +1,10 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-compatibility: Requires vidu-cli latest (install via `npm install -g vidu-cli@latest`). Node.js >=14 required.
-version: 1.4.1
-url: https://www.vidu.cn/
-secrets:
-  - VIDU_TOKEN
-dependencies:
-  - node
+version: 1.4.2
+homepage: https://www.vidu.cn/
+primaryEnv: VIDU_TOKEN
+metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
 ---
 
 # Vidu Video and Image Generation Skill
