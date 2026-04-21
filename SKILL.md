@@ -44,11 +44,14 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). |
 | `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task → `state`, `type`, `model`; use `--output` to download media on success |
 | `vidu-cli task compose --timeline <json> [--width N --height N]` | Compose video from timeline → `task_id`. Query with `task get`. **MUST read references/compose.md before building the timeline JSON — do not guess the schema.** |
-| `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id` |
-| `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id` |
+| `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
+| `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task lip-sync-voices` | List available lip-sync voices (~86, Chinese/English/Cantonese/Cartoon etc.) |
-| `vidu-cli task tts --prompt ... --voice-id ...` | Text-to-speech → `task_id` |
+| `vidu-cli task tts --prompt ... --voice-id ...` | Text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task tts-voices` | List available TTS voices (300+, 20+ languages) |
+| `vidu-cli task cost --type ... --model-version ... --duration ...` | Query task credit cost (estimate before submitting) |
+| `vidu-cli quota pass` | Query claw-pass daily quota status |
+| `vidu-cli quota credit` | Query user credit balance |
 | `vidu-cli element create --name ... --image ... [--description ...] [--style ...]` | Create reference element (check → preprocess → create). Returns `id`, `version`. |
 | `vidu-cli element check --name ...` | Check name availability |
 | `vidu-cli element list [--keyword kw]` | List personal elements |
@@ -97,7 +100,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 ## Async workflow (short)
 
 - Vidu generation is **asynchronous**: `task submit` → **`task_id`** → poll **`task get <task_id>`** until terminal state.
-- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2` (see **references/parameters.md** for per-task allowed versions).
+- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`. Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m` — see **references/parameters.md** for the complete per-task model version list.
 - Task-type summaries, **task support matrix**, **copy-paste CLI examples**, **prompt tips**, and **element create/list/search** details are in **references/parameters.md**.
 - Task lifecycle, retries, and polling guidance: **references/errors_and_retry.md**.
 
@@ -110,6 +113,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 1. Pick capability → map to `--type` and options using **references/parameters.md** (matrix + validation).
 2. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; optional `[@name]` in prompt per **references/parameters.md**.
 3. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
+   - **schedule-mode auto-detection**: if `--schedule-mode` is omitted, CLI queries claw-pass status and uses `claw_pass` when user has an active pass, otherwise `normal`. If submit fails with `ClawPassExplicitModeRequired`, tell the user their daily claw-pass quota is exhausted. Do not retry automatically.
 4. `vidu-cli task get <task_id>` until `success` or `failed`; use `--output <dir>` to download media on success.
 5. On success return `downloaded_files` (if `--output` used) or prompt user to re-run with `--output`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
 

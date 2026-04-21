@@ -26,7 +26,7 @@ Daily use: **`vidu-cli`** flags and the sections below.
 - **reference2image** and **character2video** — same input rule: **image count + material count must be ≥ 1 and ≤ 7** (each `--image` and each `--material` counts toward the total). **Text prompt (`--prompt`) is required** for both (cannot omit or leave empty).
 - **lip-sync**: Drive video mouth movement with text-to-speech or audio file. Two modes: **text mode** (TTS with voice selection) or **audio mode** (custom audio file). Video: MP4/MOV/AVI, ≤500MB. Audio: MP3/WAV/AAC/M4A, ≤100MB.
 - **TTS**: Convert text to speech audio. Uses `task tts` command (not `task submit`). Requires `--prompt` and `--voice-id`. List voices with `task tts-voices`.
-- You **do not** need `element create` when using **`--image` only**. Use **`--material`** / `[@name]` when using a saved or community reference element (you may combine images and materials as long as the total stays in 1–7).
+- **When is `element create` needed?** `element create` saves a reference for **future reuse** across multiple tasks. It is **not required** for one-off generation — just pass `--image` directly. Use `--material` (with `[@name]` in prompt) only when referencing a **previously saved** or **community** element. You may combine `--image` and `--material` as long as the total stays in 1–7.
 - **Create References**: `vidu-cli element create --name ... --image ...` runs check → preprocess → create; returns element `id` and `version`.
 - **List personal references**: `vidu-cli element list [--keyword kw]`.
 - **Search community references**: `vidu-cli element search --keyword "..."`.
@@ -71,7 +71,7 @@ vidu-cli task submit \
 vidu-cli task get <task_id> [--output/-o <dir>]
 ```
 
-Returns: `task_id`, `state`, `type`, `model`; on failed: `err_code`, `err_msg`.
+Returns: `task_id`, `state`, `type`, `model`; on failed: `err_code`, `err_msg`. **Note**: `ok` may be `true` even when `state` is `failed` — always check `state` to determine success.
 
 `--output <dir>` (optional): when state is `success`, downloads all media files to `<dir>` and returns `downloaded_files` (list of local paths). If state is not `success`, returns `download_skipped: "task not ready"`.
 
@@ -80,6 +80,45 @@ Returns: `task_id`, `state`, `type`, `model`; on failed: `err_code`, `err_msg`.
 ```bash
 vidu-cli element search --keyword "keyword" [--pagesz 20]
 ```
+
+### Query claw-pass status
+
+```bash
+vidu-cli quota pass
+```
+
+Returns: `has_pass` (bool), `daily_quota_seconds`, `used_seconds`, `remain_seconds`, `package_id`, `tier`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `has_pass` | boolean | Whether the user has an active claw-pass |
+| `package_id` | string | Package identifier |
+| `tier` | string | Subscription tier |
+| `daily_quota_seconds` | integer | Total daily quota in seconds |
+| `used_seconds` | integer | Seconds consumed today |
+| `remain_seconds` | integer | Remaining seconds today |
+| `cycle_start_at` | datetime | Billing cycle start time |
+| `cycle_end_at` | datetime | Billing cycle end time |
+| `next_refresh_at` | datetime | Next quota refresh time |
+| `refresh_timezone` | string | Refresh timezone (e.g. "Asia/Shanghai") |
+
+### Query credit balance
+
+```bash
+vidu-cli quota credit
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `credits` | integer | Current available credits |
+| `credits_expire_today` | integer | Credits expiring today |
+| `credits_expire_monthly` | integer | Credits expiring this month |
+| `credits_permanent` | integer | Permanent (non-expiring) credits |
+| `concurrency` | integer | Concurrent task limit |
+| `credits_free` | integer | Free credits |
+| `credits_subscribed` | integer | Credits from subscription |
+| `credits_purchased` | integer | Purchased credits |
+| `credit_sub_expires_at` | string (datetime) | Subscription expiration time |
 
 ---
 
@@ -113,7 +152,7 @@ vidu-cli element search --keyword "keyword" [--pagesz 20]
 
 ### `--duration`
 
-- **text2image**, **reference2image**: `0`
+- **text2image**, **reference2image**: `0` (required — these are image tasks with no duration; passing any other value causes a validation error)
 - **text2video**, **img2video**, **headtailimg2video**, **character2video**: valid ranges depend on `model_version` (see matrix above; e.g. 3.1 often 2–8s, 3.2 often 1–16s)
 
 ### `--resolution` (optional; default 1080p where applicable)
@@ -134,14 +173,14 @@ vidu-cli element search --keyword "keyword" [--pagesz 20]
 - **text2video** (3.2 only): `pro`, `speed`
 - **text2video** (3.1): do not pass
 - **img2video**, **headtailimg2video**: `pro`, `speed` (3.0: creative/stable per matrix)
-- **character2video** (3.2): `pro`, `speed` (**required** for model version 3.2)
+- **character2video** (3.2): `pro`, `speed` (**required** for model version 3.2; omitting causes a validation error)
 - **character2video** (3.0, 3.1, 3.1_pro): do not pass
 - **reference2image**, **text2image**: do not pass
 
 ### Other flags (when supported by CLI)
 
 - `sample_count` / `--sample-count`: default 1
-- `schedule_mode` / `--schedule-mode`: default `normal`
+- `schedule_mode` / `--schedule-mode`: `claw_pass` (daily quota) or `normal` (credits). Optional — if omitted, auto-detected by querying claw-pass status: uses `claw_pass` when user has an active pass, otherwise `normal`.
 - `codec` / `--codec`: default `h265`
 - `use_trial`: if exposed by CLI
 - `movement_amplitude` / `--movement-amplitude`: e.g. `auto`
@@ -157,7 +196,7 @@ Use **`vidu-cli` flags only** — do not hand-craft request bodies or invent ext
 | `--prompt` | Text prompt (respect length limits, e.g. up to 4096 chars) |
 | `--image` | Images (paths, URLs, or `ssupload` URIs after upload) |
 | `--material` | Reference material ids |
-| `input.enhance` / recaption | **No CLI flag** — handled internally by `vidu-cli` (do not invent a flag) |
+| `input.enhance` / recaption | **No CLI flag for task submit** — handled internally by `vidu-cli` (do not invent a flag). For `task cost`, use `--enhance` (default true) to estimate with/without enhance. |
 
 ---
 
@@ -335,7 +374,8 @@ vidu-cli task lip-sync \
 - `--text` and `--audio` are mutually exclusive (use one or the other)
 - `--speed`: 0.5–2.0 (default 1.0, text mode only)
 - `--volume`: 0.1–2.0, or 0 for server default (text mode only)
-- `--voice-id`: default `English_Aussie_Bloke` (90+ voices available, see voice list below). Voice IDs from `lip-sync-voices` only; do not use `tts-voices` IDs here.
+- `--voice-id`: default `English_Aussie_Bloke` (90+ voices available, see voice list below). Voice IDs from `lip-sync-voices` only; do not use `tts-voices` IDs here — using wrong pool causes a validation error.
+- `--schedule-mode`: `claw_pass` (use daily quota) or `normal` (use credits). Optional — auto-detected from claw-pass status if omitted.
 - Duration is auto-calculated from text length or audio file
 
 **Available voice IDs** (partial list, 90+ total):
@@ -368,17 +408,81 @@ vidu-cli task tts \
 | Parameter | Required | Default | Range | Description |
 |-----------|----------|---------|-------|-------------|
 | `--prompt` | Yes | - | 1-2000 chars | Text to convert to speech |
-| `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` only; do not use `lip-sync-voices` IDs here. |
-| `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier |
-| `--volume` | No | 80 | 0-100 | Volume level |
+| `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` only; do not use `lip-sync-voices` IDs here — using wrong pool causes a validation error. |
+| `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
+| `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
 | `--emotion` | No | - | Any text | Emotion hint |
 | `--language-boost` | No | - | Chinese, English, auto | Enhance specific language recognition |
+| `--schedule-mode` | No | auto | claw_pass, normal | Schedule mode: `claw_pass` (use daily quota) or `normal` (use credits). Auto-detected from claw-pass status if omitted. |
 
 List available voices: `vidu-cli task tts-voices` (grouped by language with count)
 
 Returns task_id — query result with `task get <task_id>`.
 
-### 9. Query task result
+### 9. Query task credit cost
+
+```bash
+# Video generation cost
+vidu-cli task cost \
+  --type text2video \
+  --model-version 3.2 \
+  --duration 5 \
+  --resolution 1080p
+
+# Lip-sync cost
+vidu-cli task cost \
+  --type lip_sync \
+  --model-version 3.2 \
+  --duration 5
+
+# TTS cost
+vidu-cli task cost \
+  --type tts \
+  --model-version 3.2 \
+  --duration 10
+```
+
+Supports all task types including video generation, lip-sync, and TTS. Uses the same parameters as `task submit` (minus prompt/images/materials). Query before submitting to check cost and eligibility.
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `--type` | Yes | - | Task type |
+| `--model-version` | Yes | - | Model version |
+| `--duration` | Yes | - | Duration in seconds |
+| `--resolution` | No | 1080p | Resolution |
+| `--aspect-ratio` | No | - | Aspect ratio |
+| `--transition` | No | - | Transition style |
+| `--sample-count` | No | 1 | Sample count |
+| `--codec` | No | h265 | Codec |
+| `--enhance` | No | true | Whether to enable enhance/recaption |
+| `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
+
+**Response fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cost_credits` | integer | Credits this task will cost |
+| `can_submit` | boolean | Whether the user can submit this task |
+| `current_credits` | integer | Current available credits |
+| `original_cost_credits` | integer | Original price before discount |
+| `claw_pass_quota` | object | Claw-pass quota details (when applicable) |
+
+**`claw_pass_quota` fields (when present):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `has_pass` | boolean | Whether the user has an active claw-pass |
+| `package_id` | string | Package identifier |
+| `tier` | string | Subscription tier |
+| `daily_quota_seconds` | integer | Total daily quota in seconds |
+| `used_seconds` | integer | Seconds consumed today |
+| `remain_seconds` | integer | Remaining seconds today |
+| `cycle_start_at` | datetime | Billing cycle start time |
+| `cycle_end_at` | datetime | Billing cycle end time |
+| `next_refresh_at` | datetime | Next quota refresh time |
+| `refresh_timezone` | string | Refresh timezone (e.g. "Asia/Shanghai") |
+
+### 10. Query task result
 
 ```bash
 vidu-cli task get "$TASK_ID"
@@ -395,11 +499,11 @@ Download media on success:
 vidu-cli task get "$TASK_ID" --output ./downloads
 ```
 
-- Downloads all media files to `./downloads/` as `{task_id}_{i}.mp4`
+- Downloads all media files to `./downloads/` as `{task_id}_{index}.mp4` (index is 0-based: `{task_id}_0.mp4`, `{task_id}_1.mp4`, etc.)
 - Returns `downloaded_files` (list of local paths)
 - If not yet `success`: returns `download_skipped: "task not ready"`
 
-### 10. Image upload (optional)
+### 11. Image upload (optional)
 
 ```bash
 vidu-cli upload /path/to/image.jpg
@@ -434,7 +538,7 @@ vidu-cli element create \
 
 **Constraints**
 
-- 1–3 images required
+- 1–3 images required (fewer than 1 or more than 3 causes a validation error)
 - `--image`: local path, URL, or `ssupload` URI
 - `--description`: optional, 1–1280 chars (AI default if omitted)
 - `--style`: optional, max 64 chars (AI default if omitted)
@@ -500,5 +604,15 @@ All commands return one JSON line on stdout.
 - `resolution` must be supported for the task type.
 - Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
 - Do not pass `transition` for reference tasks or **text2image**.
-- For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**.
-- API-level `input.enhance` / recaption: **no manual CLI field** — rely on `vidu-cli` defaults.
+- For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**. Violating either constraint causes a validation error.
+- API-level `input.enhance` / recaption: **no manual CLI field for task submit** — rely on `vidu-cli` defaults. `task cost` accepts `--enhance` flag.
+- `--schedule-mode`: valid values are `claw_pass` and `normal`. If omitted, auto-detected by querying claw-pass status.
+
+### `--material` format
+
+The `--material` flag uses the format `name:id:version` where:
+- `name`: the element name (matches `[@name]` in prompt)
+- `id`: the element ID returned by `element create` or `element list/search`
+- `version`: the element version
+
+Example: `--material "aliya:3073530415201165:1765430214"` pairs with `[@aliya]` in the prompt text. The `[@name]` in the prompt is optional — it helps the model associate the reference with specific parts of the prompt, but generation works without it.
