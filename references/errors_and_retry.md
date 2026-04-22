@@ -19,10 +19,6 @@ Terminal states: **`success`**, **`failed`**, **`canceled`**. Do not treat other
 
 Tell the user the task failed and pass through **`err_code`** / **`err_msg`**. Do not return media URLs.
 
-### `ClawPassExplicitModeRequired`
-
-Returned when `--schedule-mode` is omitted (auto-detected as `claw_pass`) but the user's daily claw-pass quota is exhausted. **Do not retry** — inform the user that their daily quota is used up. They can either wait for the next refresh or re-submit with `--schedule-mode normal` to use credits instead.
-
 ---
 
 ## Polling results
@@ -33,6 +29,14 @@ The CLI does **not** block waiting for task completion: `vidu-cli task submit` r
 
 - **`vidu-cli task get`** is read-only and safe to repeat (poll until terminal state or timeout).
 - **`vidu-cli task get <task_id> --output <dir>`** downloads media files on success.
+
+---
+
+## Submit-time errors
+
+### `ClawPassExplicitModeRequired`
+
+Returned on submit when `--schedule-mode` is omitted (auto-detected as `claw_pass`) but the user's daily claw-pass quota is exhausted. This is a **4xx submit error** (appears in `error.code`), not a task-state failure. **Do not retry** — inform the user that their daily quota is used up. They can either wait for the next refresh or re-submit with `--schedule-mode normal` to use credits instead.
 
 ---
 

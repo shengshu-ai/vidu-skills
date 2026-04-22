@@ -196,7 +196,7 @@ Use **`vidu-cli` flags only** — do not hand-craft request bodies or invent ext
 | `--prompt` | Text prompt (respect length limits, e.g. up to 4096 chars) |
 | `--image` | Images (paths, URLs, or `ssupload` URIs after upload) |
 | `--material` | Reference material ids |
-| `input.enhance` / recaption | **No CLI flag for task submit** — handled internally by `vidu-cli` (do not invent a flag). For `task cost`, use `--enhance` (default true) to estimate with/without enhance. |
+| `input.enhance` / recaption | **No CLI flag** — handled internally by `vidu-cli` (do not invent a flag). |
 
 ---
 
@@ -419,34 +419,21 @@ List available voices: `vidu-cli task tts-voices` (grouped by language with coun
 
 Returns task_id — query result with `task get <task_id>`.
 
-### 9. Query task credit cost
+### 9. Query credit cost (video/image tasks)
 
 ```bash
-# Video generation cost
 vidu-cli task cost \
   --type text2video \
   --model-version 3.2 \
   --duration 5 \
   --resolution 1080p
-
-# Lip-sync cost
-vidu-cli task cost \
-  --type lip_sync \
-  --model-version 3.2 \
-  --duration 5
-
-# TTS cost
-vidu-cli task cost \
-  --type tts \
-  --model-version 3.2 \
-  --duration 10
 ```
 
-Supports all task types including video generation, lip-sync, and TTS. Uses the same parameters as `task submit` (minus prompt/images/materials). Query before submitting to check cost and eligibility.
+For video/image task types: `text2image`, `text2video`, `img2video`, `headtailimg2video`, `reference2image`, `character2video`. **For TTS and lip-sync, use `task tts-cost` and `task lip-sync-cost` respectively.**
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `--type` | Yes | - | Task type |
+| `--type` | Yes | - | Task type (video/image types only) |
 | `--model-version` | Yes | - | Model version |
 | `--duration` | Yes | - | Duration in seconds |
 | `--resolution` | No | 1080p | Resolution |
@@ -454,10 +441,45 @@ Supports all task types including video generation, lip-sync, and TTS. Uses the 
 | `--transition` | No | - | Transition style |
 | `--sample-count` | No | 1 | Sample count |
 | `--codec` | No | h265 | Codec |
-| `--enhance` | No | true | Whether to enable enhance/recaption |
 | `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
 
-**Response fields:**
+### 9a. Query credit cost (TTS tasks)
+
+```bash
+vidu-cli task tts-cost \
+  --text "Hello, this is a test of text to speech." \
+  --voice-id "Chinese (Mandarin)_Reliable_Executive"
+```
+
+TTS is priced by character count — the `--text` content determines the cost.
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `--text` | Yes | - | Text content (cost calculated by character count) |
+| `--voice-id` | Yes | - | Voice ID (from `task tts-voices`) |
+| `--speed` | No | 1.0 | Speech speed: 0.5-2.0 |
+| `--pitch` | No | 0 | Pitch adjustment |
+| `--volume` | No | 80 | Volume: 0-100 |
+| `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
+
+### 9b. Query credit cost (lip-sync tasks)
+
+```bash
+vidu-cli task lip-sync-cost \
+  --duration 10 \
+  --voice-id English_Aussie_Bloke
+```
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `--duration` | Yes | - | Duration in seconds |
+| `--voice-id` | No | English_Aussie_Bloke | Voice ID (from `task lip-sync-voices`) |
+| `--speed` | No | 1.0 | Speech speed: 0.5-2.0 |
+| `--volume` | No | 0 | Volume [0.5,2], or 0 for server default |
+| `--codec` | No | h265 | Codec |
+| `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
+
+**Response fields (shared by all three cost commands):**
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -605,7 +627,7 @@ All commands return one JSON line on stdout.
 - Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
 - Do not pass `transition` for reference tasks or **text2image**.
 - For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**. Violating either constraint causes a validation error.
-- API-level `input.enhance` / recaption: **no manual CLI field for task submit** — rely on `vidu-cli` defaults. `task cost` accepts `--enhance` flag.
+- API-level `input.enhance` / recaption: **no manual CLI field** — rely on `vidu-cli` defaults.
 - `--schedule-mode`: valid values are `claw_pass` and `normal`. If omitted, auto-detected by querying claw-pass status.
 
 ### `--material` format

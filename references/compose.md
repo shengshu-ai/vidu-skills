@@ -198,6 +198,8 @@ All fields are optional. Only provided fields are sent to the server.
 
 ### Simple: two video clips concatenated
 
+The example below shows three `media_url` formats: local file path (auto-uploaded by CLI), remote URL, and previously uploaded media (`ssupload:` URI).
+
 ```json
 {
   "video_tracks": [
@@ -205,19 +207,19 @@ All fields are optional. Only provided fields are sent to the server.
       "main_track": true,
       "video_track_clips": [
         {
-          "media_url": "/Users/me/videos/intro.mp4",  // local file path (auto-uploaded by CLI)
+          "media_url": "/Users/me/videos/intro.mp4",
           "type": "Video",
           "timeline_in": 0,
           "timeline_out": 5
         },
         {
-          "media_url": "https://example.com/video2.mp4",  // remote URL
+          "media_url": "https://example.com/video2.mp4",
           "type": "Video",
           "timeline_in": 5,
           "timeline_out": 10
         },
         {
-          "media_url": "ssupload:?id=abc123def456",  // previously uploaded media
+          "media_url": "ssupload:?id=abc123def456",
           "type": "Video",
           "timeline_in": 10,
           "timeline_out": 15

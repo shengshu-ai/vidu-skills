@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.2
+version: 1.4.3
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -49,7 +49,9 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | `vidu-cli task lip-sync-voices` | List available lip-sync voices (~86, Chinese/English/Cantonese/Cartoon etc.) |
 | `vidu-cli task tts --prompt ... --voice-id ...` | Text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task tts-voices` | List available TTS voices (300+, 20+ languages) |
-| `vidu-cli task cost --type ... --model-version ... --duration ...` | Query task credit cost (estimate before submitting) |
+| `vidu-cli task cost --type ... --model-version ... --duration ...` | Query credit cost for video/image tasks (estimate before submitting) |
+| `vidu-cli task tts-cost --text ... --voice-id ...` | Query credit cost for TTS tasks (priced by character count; `--text` required) |
+| `vidu-cli task lip-sync-cost --duration ... --voice-id ...` | Query credit cost for lip-sync tasks (defaults to voice `English_Aussie_Bloke` if omitted) |
 | `vidu-cli quota pass` | Query claw-pass daily quota status |
 | `vidu-cli quota credit` | Query user credit balance |
 | `vidu-cli element create --name ... --image ... [--description ...] [--style ...]` | Create reference element (check → preprocess → create). Returns `id`, `version`. |
@@ -112,10 +114,11 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 
 1. Pick capability → map to `--type` and options using **references/parameters.md** (matrix + validation).
 2. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; optional `[@name]` in prompt per **references/parameters.md**.
-3. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
-   - **schedule-mode auto-detection**: if `--schedule-mode` is omitted, CLI queries claw-pass status and uses `claw_pass` when user has an active pass, otherwise `normal`. If submit fails with `ClawPassExplicitModeRequired`, tell the user their daily claw-pass quota is exhausted. Do not retry automatically.
-4. `vidu-cli task get <task_id>` until `success` or `failed`; use `--output <dir>` to download media on success.
-5. On success return `downloaded_files` (if `--output` used) or prompt user to re-run with `--output`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
+3. *(Optional)* Query cost before submitting: use `task cost`, `task tts-cost`, or `task lip-sync-cost` to estimate credit usage and check eligibility.
+4. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
+   - **schedule-mode auto-detection**: if `--schedule-mode` is omitted, CLI queries claw-pass status and uses `claw_pass` when user has an active pass, otherwise `normal`. If submit fails with `ClawPassExplicitModeRequired`, tell the user their daily claw-pass quota is exhausted. Do not retry automatically — suggest re-submitting with `--schedule-mode normal` to use credits instead, or waiting for the next quota refresh.
+5. `vidu-cli task get <task_id>` until `success` or `failed`; use `--output <dir>` to download media on success.
+6. On success return `downloaded_files` (if `--output` used) or prompt user to re-run with `--output`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
 
 ### For task compose (video composition)
 
