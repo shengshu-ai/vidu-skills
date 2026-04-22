@@ -43,7 +43,7 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | `vidu-cli upload <image_path>` | Upload image → `upload_id`, `ssupload_uri` |
 | `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). |
 | `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task → `state`, `type`, `model`; use `--output` to download media on success |
-| `vidu-cli task compose --timeline <json> [--width N --height N]` | Compose video from timeline → `task_id`. Query with `task get`. **MUST read references/compose.md before building the timeline JSON — do not guess the schema.** |
+| `vidu-cli task compose --timeline <json> [--width N --height N] [--schedule-mode <mode>]` | Compose video from timeline → `task_id`. Query with `task get`. Supports `--schedule-mode` (auto-detected if omitted). **MUST read references/compose.md before building the timeline JSON — do not guess the schema.** |
 | `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task lip-sync-voices` | List available lip-sync voices (~86, Chinese/English/Cantonese/Cartoon etc.) |
@@ -128,7 +128,8 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 2. Build the timeline JSON following the exact structure: `video_tracks[].video_track_clips[]`, `audio_tracks[].audio_track_clips[]`, `subtitle_tracks[].subtitle_track_clips[]`, `effect_tracks[].effect_track_items[]`.
 3. For `media_url`: use `ssupload:?id=xxx`, http URL, or local file path (auto-uploaded by CLI).
 4. For `file_url` (subtitles): use `ssupload:?id=xxx`, http URL, or local .srt file path.
-5. `vidu-cli task compose --timeline <file_or_json> [--width N --height N]` → returns `task_id`.
+5. `vidu-cli task compose --timeline <file_or_json> [--width N --height N] [--schedule-mode <mode>]` → returns `task_id`.
+   - **schedule-mode auto-detection**: same as task submit — if omitted, CLI auto-detects from claw-pass status. If compose fails with `ClawPassExplicitModeRequired`, suggest `--schedule-mode normal` to use credits instead.
 6. `vidu-cli task get <task_id>` to poll status, same as other tasks.
 
 ---
