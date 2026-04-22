@@ -12,12 +12,15 @@ Compose a multi-track timeline into a single exported video.
 vidu-cli task compose \
   --timeline <file_path_or_json_string> \
   [--width 1920] \
-  [--height 1080]
+  [--height 1080] \
+  [--schedule-mode <mode>]
 ```
 
 All output flags are optional. If omitted, the server decides.
 
 `--timeline` accepts either a JSON file path or an inline JSON string. The CLI auto-detects: if the argument starts with `{` or `[`, it is treated as inline JSON; otherwise as a file path. When using inline JSON in shell, wrap in single quotes to prevent shell interpretation: `--timeline '{"video_tracks":[...]}'`.
+
+`--schedule-mode`: `claw_pass` (use daily quota) or `normal` (use credits). Optional — if omitted, auto-detected by querying claw-pass status: uses `claw_pass` when user has an active pass, otherwise `normal`.
 
 Returns: `{"ok": true, "task_id": "...", "trace_id": "..."}`
 
