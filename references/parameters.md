@@ -8,11 +8,11 @@ Daily use: **`vidu-cli`** flags and the sections below.
 
 | Task Type | CLI Command | Model Version | Duration | Resolution | Aspect Ratio | Transition | Images |
 |-----------|----------|---------------|----------|------------|--------------|------------|--------|
-| text2image | `text2image` | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | 0 |
+| text2image | `text2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | 0 |
 | text2video | `text2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: pro/speed | 0 |
 | img2video | `img2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1+: pro/speed | exactly 1 |
 | headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
-| reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
+| reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
 | character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)** | images + materials: 1–7 |
 | lip_sync | `task lip-sync` | N/A | auto (from text/audio) | 1080p | from video | N/A | 1 video + (text OR audio) |
 | tts | `task tts` | N/A | auto (from text) | N/A | N/A | N/A | text + voice-id |
@@ -147,8 +147,9 @@ vidu-cli quota credit
 | `3.1` | Q2 | text2image, reference2image, 2–8s video models |
 | `3.2` | Q3 | 1–16s video models |
 | `3.1_pro` | Q2 pro | `character2video` only |
-| `3.2_fast_m` | Q3 fast | text2image / reference2image only (2k/4k) |
-| `3.2_pro_m` | Q3 pro | text2image / reference2image only (2k/4k) |
+| `3.2_fast_m` | Q3 fast | text2image / reference2image only |
+| `3.2_pro_m` | Q3 pro | text2image / reference2image only |
+| `3.2_image_2` | Q3 image v2 | text2image / reference2image only |
 
 ### `--duration`
 
@@ -157,7 +158,7 @@ vidu-cli quota credit
 
 ### `--resolution` (optional; default 1080p where applicable)
 
-- **text2image**: `1080p` (3.1); `2k` / `4k` with 3.2_fast_m / 3.2_pro_m
+- **text2image**: `1080p`, `2k`, `4k`
 - **reference2image**: `1080p`, `2k`, `4k`
 - **Video tasks**: `1080p` only
 
@@ -224,7 +225,7 @@ vidu-cli task submit \
   --type text2image \
   --prompt "A beautiful sunset over the ocean" \
   --duration 0 \
-  --model-version 3.1 \
+  --model-version 3.2_image_2 \
   --resolution 2k
 ```
 

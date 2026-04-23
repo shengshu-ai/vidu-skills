@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.3
+version: 1.4.4
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -102,7 +102,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 ## Async workflow (short)
 
 - Vidu generation is **asynchronous**: `task submit` → **`task_id`** → poll **`task get <task_id>`** until terminal state.
-- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`. Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m` — see **references/parameters.md** for the complete per-task model version list.
+- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`. Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m`, `3.2_image_2` — see **references/parameters.md** for the complete per-task model version list.
 - Task-type summaries, **task support matrix**, **copy-paste CLI examples**, **prompt tips**, and **element create/list/search** details are in **references/parameters.md**.
 - Task lifecycle, retries, and polling guidance: **references/errors_and_retry.md**.
 
