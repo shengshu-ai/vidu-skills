@@ -9,11 +9,11 @@ Daily use: **`vidu-cli`** flags and the sections below.
 | Task Type | CLI Command | Model Version | Duration | Resolution | Aspect Ratio | Transition | Images |
 |-----------|----------|---------------|----------|------------|--------------|------------|--------|
 | text2image | `text2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | 0 |
-| text2video | `text2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: pro/speed | 0 |
-| img2video | `img2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1+: pro/speed | exactly 1 |
-| headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
+| text2video | `text2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: pro/speed | 0 |
+| img2video | `img2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1+: pro/speed | exactly 1 |
+| headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
 | reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
-| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2 | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)** | images + materials: 1–7 |
+| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)**; 3.2_a: do not pass | images + materials: 1–7; 3.2_a also supports `--audio` (≤3, wav/mp3, ≤15MB each, each 2–15s, total ≤15s) |
 | lip_sync | `task lip-sync` | N/A | auto (from text/audio) | 1080p | from video | N/A | 1 video + (text OR audio) |
 | tts | `task tts` | N/A | auto (from text) | N/A | N/A | N/A | text + voice-id |
 
@@ -52,6 +52,7 @@ vidu-cli task submit \
   --prompt "text prompt" \
   [--image <path|url|ssupload_uri>] \
   [--material "name:id:version"] \
+  [--audio <path|url|ssupload_uri>] \
   --duration <seconds> \
   --model-version <version> \
   [--aspect-ratio <ratio>] \
@@ -63,7 +64,7 @@ vidu-cli task submit \
   [--schedule-mode <mode>]
 ```
 
-`--image` and `--material` may be repeated where applicable.
+`--image` and `--material` may be repeated where applicable. `--audio` may be repeated (character2video + 3.2_a only, max 3).
 
 ### Query task
 
@@ -146,6 +147,7 @@ vidu-cli quota credit
 | `3.0` | Q1 | |
 | `3.1` | Q2 | text2image, reference2image, 2–8s video models |
 | `3.2` | Q3 | 1–16s video models |
+| `3.2_a` | Q3-A | text2video, img2video, headtailimg2video, character2video; duration -1 (auto) or 4–15s; supports `--audio` for character2video **only** (invalid for all other model versions and task types) |
 | `3.1_pro` | Q2 pro | `character2video` only |
 | `3.2_fast_m` | Q3 fast | text2image / reference2image only |
 | `3.2_pro_m` | Q3 pro | text2image / reference2image only |
@@ -155,6 +157,7 @@ vidu-cli quota credit
 
 - **text2image**, **reference2image**: `0` (required — these are image tasks with no duration; passing any other value causes a validation error)
 - **text2video**, **img2video**, **headtailimg2video**, **character2video**: valid ranges depend on `model_version` (see matrix above; e.g. 3.1 often 2–8s, 3.2 often 1–16s)
+- **3.2_a** (all supported video types): `-1` (model auto-infers duration based on your inputs — prompt, audio length, etc.) or `4–15` (inclusive). Any other value causes a validation error.
 
 ### `--resolution` (optional; default 1080p where applicable)
 
@@ -175,6 +178,7 @@ vidu-cli quota credit
 - **text2video** (3.1): do not pass
 - **img2video**, **headtailimg2video**: `pro`, `speed` (3.0: creative/stable per matrix)
 - **character2video** (3.2): `pro`, `speed` (**required** for model version 3.2; omitting causes a validation error)
+- **character2video** (3.2_a): do not pass
 - **character2video** (3.0, 3.1, 3.1_pro): do not pass
 - **reference2image**, **text2image**: do not pass
 
@@ -218,6 +222,17 @@ vidu-cli task submit \
 
 Response: `{"ok": true, "task_id": "...", "trace_id": "..."}`
 
+**With 3.2_a model** (duration -1 = auto-infer):
+
+```bash
+vidu-cli task submit \
+  --type text2video \
+  --prompt "A cat walks in the snow at sunset" \
+  --duration -1 \
+  --model-version 3.2_a \
+  --aspect-ratio 9:16 \
+  --resolution 1080p
+```
 ### 2. text-to-image
 
 ```bash
@@ -243,16 +258,42 @@ vidu-cli task submit \
 
 `--image` accepts local path, URL, or `ssupload:?id=...`.
 
+**With 3.2_a model**:
+
+```bash
+vidu-cli task submit \
+  --type img2video \
+  --prompt "The cat starts running" \
+  --image /path/to/image.jpg \
+  --duration -1 \
+  --model-version 3.2_a \
+  --resolution 1080p
+```
+
 ### 4. head-tail-image-to-video
 
 ```bash
 vidu-cli task submit \
   --type headtailimg2video \
   --prompt "Smooth transition between scenes" \
-  --image start.jpg \
-  --image end.jpg \
+  --image /path/to/start.jpg \
+  --image /path/to/end.jpg \
   --duration 5 \
   --model-version 3.2 \
+  --resolution 1080p
+```
+
+**With 3.2_a model**:
+
+```bash
+vidu-cli task submit \
+  --type headtailimg2video \
+  --prompt "Smooth transition between scenes" \
+  --image /path/to/start.jpg \
+  --image /path/to/end.jpg \
+  --duration -1 \
+  --model-version 3.2_a \
+  --aspect-ratio 4:3 \
   --resolution 1080p
 ```
 
@@ -271,6 +312,28 @@ vidu-cli task submit \
   --transition pro \
   --resolution 1080p
 ```
+
+**With 3.2_a model — full inputs (text prompt + subject/material + image + audio)**:
+
+```bash
+vidu-cli task submit \
+  --type character2video \
+  --prompt "[@aliya] walks in the garden, wearing a red dress, sunlight filtering through the trees" \
+  --material "aliya:3073530415201165:1765430214" \
+  --image /path/to/scene_ref.jpg \
+  --audio /path/to/ref_audio.wav \
+  --audio /path/to/ref_audio2.mp3 \
+  --duration -1 \
+  --model-version 3.2_a \
+  --aspect-ratio 3:4 \
+  --resolution 1080p
+```
+
+- `--prompt`: text description of the scene (required)
+- `--material`: saved subject reference (`[@aliya]` in prompt links to it)
+- `--image`: additional scene/style reference image (local path, URL, or `ssupload:?id=...`)
+- `--audio`: reference audio files (wav/mp3, ≤15MB each, 2–15s each, max 3, total ≤15s)
+- `--duration -1`: model auto-infers output duration from inputs
 
 **Reference + extra image(s)** — mixed `--material` and `--image` (repeat either flag; combined count ≤ 7):
 
@@ -545,8 +608,8 @@ One command performs name check → preprocess (AI description/style) → create
 ```bash
 vidu-cli element create \
   --name "my_character" \
-  --image image1.jpg \
-  --image image2.jpg
+  --image /path/to/image1.jpg \
+  --image /path/to/image2.jpg
 ```
 
 With custom description and style:
@@ -554,7 +617,7 @@ With custom description and style:
 ```bash
 vidu-cli element create \
   --name "my_character" \
-  --image image1.jpg \
+  --image /path/to/image1.jpg \
   --description "A young woman with long black hair" \
   --style "realistic"
 ```
@@ -628,6 +691,7 @@ All commands return one JSON line on stdout.
 - Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
 - Do not pass `transition` for reference tasks or **text2image**.
 - For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**. Violating either constraint causes a validation error.
+- **`--audio`** (`character2video` with `3.2_a` only): max 3 audio inputs; each must be wav/mp3, ≤15MB, duration 2–15s; total duration of all audio inputs ≤15s. Passing `--audio` with any other task type or model_version causes a validation error. Accepts local path, URL, or `ssupload:?id=...` (local files are validated; remote URIs are passed through).
 - API-level `input.enhance` / recaption: **no manual CLI field** — rely on `vidu-cli` defaults.
 - `--schedule-mode`: valid values are `claw_pass` and `normal`. If omitted, auto-detected by querying claw-pass status.
 

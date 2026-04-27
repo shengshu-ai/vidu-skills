@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.4
+version: 1.4.5
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -46,7 +46,7 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | `vidu-cli task compose --timeline <json> [--width N --height N]` | Compose video from timeline → `task_id`. Query with `task get`. **MUST read references/compose.md before building the timeline JSON — do not guess the schema.** |
 | `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
-| `vidu-cli task lip-sync-voices` | List available lip-sync voices (~86, Chinese/English/Cantonese/Cartoon etc.) |
+| `vidu-cli task lip-sync-voices` | List available lip-sync voices (90+, Chinese/English/Cantonese/Cartoon etc.) |
 | `vidu-cli task tts --prompt ... --voice-id ...` | Text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task tts-voices` | List available TTS voices (300+, 20+ languages) |
 | `vidu-cli task cost --type ... --model-version ... --duration ...` | Query credit cost for video/image tasks (estimate before submitting) |
@@ -102,7 +102,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 ## Async workflow (short)
 
 - Vidu generation is **asynchronous**: `task submit` → **`task_id`** → poll **`task get <task_id>`** until terminal state.
-- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`. Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m`, `3.2_image_2` — see **references/parameters.md** for the complete per-task model version list.
+- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`, Q3-A → `3.2_a` (character2video supports `--audio`; duration -1 or 4–15s). Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m`, `3.2_image_2` — see **references/parameters.md** for the complete per-task model version list.
 - Task-type summaries, **task support matrix**, **copy-paste CLI examples**, **prompt tips**, and **element create/list/search** details are in **references/parameters.md**.
 - Task lifecycle, retries, and polling guidance: **references/errors_and_retry.md**.
 
