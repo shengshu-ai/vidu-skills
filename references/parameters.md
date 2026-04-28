@@ -13,7 +13,7 @@ Daily use: **`vidu-cli`** flags and the sections below.
 | img2video | `img2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1+: pro/speed | exactly 1 |
 | headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | N/A | 3.0: creative/stable; 3.1+: pro/speed | exactly 2 |
 | reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
-| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)**; 3.2_a: do not pass | images + materials: 1–7; 3.2_a also supports `--audio` (≤3, wav/mp3, ≤15MB each, each 2–15s, total ≤15s) |
+| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s; 3.2_a: -1 or 4–15s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)**; 3.2_a: do not pass | images + materials: 1–7; 3.2_a also supports `--audio` (≤3, wav/mp3, ≤15MB each, each 2–15s, total ≤15s) and `--video` (mp4/mov; max 3; local files: ≤50MB each, aspect ratio 0.4–2.5, w/h 300–60000, total pixels 409600–2086876, total duration ≤15s) |
 | lip_sync | `task lip-sync` | N/A | auto (from text/audio) | 1080p | from video | N/A | 1 video + (text OR audio) |
 | tts | `task tts` | N/A | auto (from text) | N/A | N/A | N/A | text + voice-id |
 
@@ -52,7 +52,8 @@ vidu-cli task submit \
   --prompt "text prompt" \
   [--image <path|url|ssupload_uri>] \
   [--material "name:id:version"] \
-  [--audio <path|url|ssupload_uri>] \
+  [--audio <path|ssupload_uri>] \
+  [--video <path|ssupload_uri>] \
   --duration <seconds> \
   --model-version <version> \
   [--aspect-ratio <ratio>] \
@@ -64,7 +65,7 @@ vidu-cli task submit \
   [--schedule-mode <mode>]
 ```
 
-`--image` and `--material` may be repeated where applicable. `--audio` may be repeated (character2video + 3.2_a only, max 3).
+`--image` and `--material` may be repeated where applicable. `--audio` may be repeated (character2video + 3.2_a only, max 3). `--video` may be repeated (character2video + 3.2_a only, max 3, total local video duration ≤ 15s).
 
 ### Query task
 
@@ -147,7 +148,7 @@ vidu-cli quota credit
 | `3.0` | Q1 | |
 | `3.1` | Q2 | text2image, reference2image, 2–8s video models |
 | `3.2` | Q3 | 1–16s video models |
-| `3.2_a` | Q3-A | text2video, img2video, headtailimg2video, character2video; duration -1 (auto) or 4–15s; supports `--audio` for character2video **only** (invalid for all other model versions and task types) |
+| `3.2_a` | Q3-A | text2video, img2video, headtailimg2video, character2video; duration -1 (auto) or 4–15s; supports `--audio` for character2video **only** (invalid for all other model versions and task types); supports `--video` for character2video **only** (max 3; local file constraints: mp4/mov, ≤50MB, aspect ratio 0.4–2.5, w/h 300–60000, total pixels 409600–2086876, total duration ≤15s) |
 | `3.1_pro` | Q2 pro | `character2video` only |
 | `3.2_fast_m` | Q3 fast | text2image / reference2image only |
 | `3.2_pro_m` | Q3 pro | text2image / reference2image only |
@@ -334,6 +335,22 @@ vidu-cli task submit \
 - `--image`: additional scene/style reference image (local path, URL, or `ssupload:?id=...`)
 - `--audio`: reference audio files (wav/mp3, ≤15MB each, 2–15s each, max 3, total ≤15s)
 - `--duration -1`: model auto-infers output duration from inputs
+
+**With 3.2_a model — video as reference input**:
+
+```bash
+vidu-cli task submit \
+  --type character2video \
+  --prompt "[@aliya] dances gracefully in the studio" \
+  --material "aliya:3073530415201165:1765430214" \
+  --video /path/to/dance_ref.mp4 \
+  --duration -1 \
+  --model-version 3.2_a \
+  --aspect-ratio 16:9 \
+  --resolution 1080p
+```
+
+- `--video`: reference video (mp4/mov; local path or `ssupload:?id=...`; HTTP/HTTPS URLs not supported). Max 3. Local files: ≤50MB, aspect ratio 0.4–2.5, w/h 300–60000, total pixels 409600–2086876, total local video duration ≤15s.
 
 **Reference + extra image(s)** — mixed `--material` and `--image` (repeat either flag; combined count ≤ 7):
 
@@ -691,7 +708,8 @@ All commands return one JSON line on stdout.
 - Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
 - Do not pass `transition` for reference tasks or **text2image**.
 - For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**. Violating either constraint causes a validation error.
-- **`--audio`** (`character2video` with `3.2_a` only): max 3 audio inputs; each must be wav/mp3, ≤15MB, duration 2–15s; total duration of all audio inputs ≤15s. Passing `--audio` with any other task type or model_version causes a validation error. Accepts local path, URL, or `ssupload:?id=...` (local files are validated; remote URIs are passed through).
+- **`--audio`** (`character2video` with `3.2_a` only): max 3 audio inputs; each must be wav/mp3, ≤15MB, duration 2–15s; total duration of all audio inputs ≤15s. Passing `--audio` with any other task type or model_version causes a validation error. Accepts local path or `ssupload:?id=...` (HTTP/HTTPS URLs not supported; local files are validated).
+- **`--video`** (`character2video` with `3.2_a` only): max 3 video inputs. Passing `--video` with any other task type or model_version causes a validation error. Accepts local path or `ssupload:?id=...` (HTTP/HTTPS URLs not supported). **Local file validation**: format must be mp4 or mov; single file ≤ 50MB; aspect ratio (width ÷ height) must be in [0.4, 2.5]; width and height each in [300, 60000]; total pixels (width × height) must be in [409600, 2086876]; total duration of all local video inputs ≤ 15s.
 - API-level `input.enhance` / recaption: **no manual CLI field** — rely on `vidu-cli` defaults.
 - `--schedule-mode`: valid values are `claw_pass` and `normal`. If omitted, auto-detected by querying claw-pass status.
 

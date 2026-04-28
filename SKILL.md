@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.5
+version: 1.4.6
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -41,7 +41,7 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | Command | Purpose |
 |---------|---------|
 | `vidu-cli upload <image_path>` | Upload image → `upload_id`, `ssupload_uri` |
-| `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). |
+| `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). `--video`: local path or `ssupload:?id=...` (character2video + 3.2_a only, auto-upload; URLs not supported). `--audio`: local path or `ssupload:?id=...` (character2video + 3.2_a only; URLs not supported). |
 | `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task → `state`, `type`, `model`; use `--output` to download media on success |
 | `vidu-cli task compose --timeline <json> [--width N --height N] [--schedule-mode <mode>]` | Compose video from timeline → `task_id`. Query with `task get`. Supports `--schedule-mode` (auto-detected if omitted). **MUST read references/compose.md before building the timeline JSON — do not guess the schema.** |
 | `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
@@ -59,11 +59,17 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | `vidu-cli element list [--keyword kw]` | List personal elements |
 | `vidu-cli element search --keyword kw` | Search community elements |
 
-**Smart image handling** (`task submit --image`, `element create --image`)
+**Smart input handling**
 
+`--image` (`task submit`, `element create`):
 - Local path → auto-upload (auto-compress when file is larger than 10MB)
 - `http(s):` URL → download then upload
 - `ssupload:?id=...` → use as-is
+
+`--video` and `--audio` (`task submit`, character2video + 3.2_a only):
+- Local path → auto-upload
+- `ssupload:?id=...` → use as-is
+- `http(s):` URL → **not supported** (rejected with error)
 
 ---
 
@@ -74,7 +80,7 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 - **image-to-video** — One image + text → video
 - **head-tail-image-to-video** — Start + end frames + text
 - **reference-to-image** — **Images + materials: 1–7** total; **text prompt required**; can be images-only, materials-only, or mixed; images-only needs no `element create`
-- **reference-to-video** — Same rule: **1–7** total; **text prompt required**
+- **reference-to-video** — Same rule: **1–7** total; **text prompt required**; with `3.2_a` model, also supports `--video` input (max 3, local files validated for size/dimensions/duration)
 - **lip-sync** — Drive video mouth movement with text-to-speech or audio file
 - **text-to-speech** — Convert text to speech audio via `task tts`
 - **video-compose** — Compose multi-track timeline (video/audio/subtitle/effect) into a single exported video via `task compose`
@@ -102,7 +108,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 ## Async workflow (short)
 
 - Vidu generation is **asynchronous**: `task submit` → **`task_id`** → poll **`task get <task_id>`** until terminal state.
-- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`, Q3-A → `3.2_a` (character2video supports `--audio`; duration -1 or 4–15s). Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m`, `3.2_image_2` — see **references/parameters.md** for the complete per-task model version list.
+- **Model nicknames**: Q1 → `3.0`, Q2 → `3.1`, Q3 → `3.2`, Q3-A → `3.2_a` (character2video supports `--audio` and `--video`; duration -1 or 4–15s). Additional variants exist: `3.1_pro`, `3.2_fast_m`, `3.2_pro_m`, `3.2_image_2` — see **references/parameters.md** for the complete per-task model version list.
 - Task-type summaries, **task support matrix**, **copy-paste CLI examples**, **prompt tips**, and **element create/list/search** details are in **references/parameters.md**.
 - Task lifecycle, retries, and polling guidance: **references/errors_and_retry.md**.
 
@@ -113,7 +119,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 ### For task submit (generation tasks)
 
 1. Pick capability → map to `--type` and options using **references/parameters.md** (matrix + validation).
-2. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; optional `[@name]` in prompt per **references/parameters.md**.
+2. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; for **character2video** with `3.2_a`, also supports `--video` (max 3); optional `[@name]` in prompt per **references/parameters.md**.
 3. *(Optional)* Query cost before submitting: use `task cost`, `task tts-cost`, or `task lip-sync-cost` to estimate credit usage and check eligibility.
 4. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
    - **schedule-mode auto-detection**: if `--schedule-mode` is omitted, CLI queries claw-pass status and uses `claw_pass` when user has an active pass, otherwise `normal`. If submit fails with `ClawPassExplicitModeRequired`, tell the user their daily claw-pass quota is exhausted. Do not retry automatically — suggest re-submitting with `--schedule-mode normal` to use credits instead, or waiting for the next quota refresh.
@@ -125,7 +131,7 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 **CRITICAL: Before constructing the `--timeline` JSON, you MUST read **references/compose.md** first.** The timeline has a specific JSON schema with exact field names, nesting structure, and media_url rules. Do NOT guess the structure — always refer to compose.md for the complete schema, supported fields, and examples.
 
 1. Read **references/compose.md** to understand the timeline JSON schema, media_url rules, and limits.
-2. Build the timeline JSON following the exact structure: `video_tracks[].video_track_clips[]`, `audio_tracks[].audio_track_clips[]`, `subtitle_tracks[].subtitle_track_clips[]`, `effect_tracks[].effect_track_items[]`.
+2. Build the timeline JSON following the exact structure: `video_tracks[].video_track_clips[]`, `audio_tracks[].audio_track_clips[]`, `subtitle_tracks[].subtitle_track_clips[]`, `effect_tracks[].effect_track_items[]`. Every clip **must** include `timeline_in` and `timeline_out` (the CLI validates this and rejects timelines with missing values).
 3. For `media_url`: use `ssupload:?id=xxx`, http URL, or local file path (auto-uploaded by CLI).
 4. For `file_url` (subtitles): use `ssupload:?id=xxx`, http URL, or local .srt file path.
 5. `vidu-cli task compose --timeline <file_or_json> [--width N --height N] [--schedule-mode <mode>]` → returns `task_id`.

@@ -101,8 +101,8 @@ Top-level structure:
 | `in` | float | Entry point in source material (seconds) |
 | `out` | float | Exit point in source material (seconds) |
 | `duration` | float | Clip duration in seconds. **Required for `Image` and `GlobalImage` types** (specifies display time); optional for `Video` (derived from source if omitted). |
-| `timeline_in` | float | Start position on timeline |
-| `timeline_out` | float | End position on timeline |
+| `timeline_in` | float | Start position on timeline (**required**) |
+| `timeline_out` | float | End position on timeline (**required**) |
 | `speed` | float | Playback speed (0.1-100) |
 | `opacity` | float | 0 (transparent) to 1 (opaque) |
 | `effects` | Effect[] | Effects applied to this clip |
@@ -125,7 +125,7 @@ Top-level structure:
 | `content` | string | Text content (**required** for `AI_TTS` type; ignored for `Audio` type) |
 | `voice` | string | Voice identifier (**required** for `AI_TTS` type; ignored for `Audio` type) |
 | `in`, `out` | float | Trim points (seconds) |
-| `timeline_in`, `timeline_out` | float | Timeline positioning |
+| `timeline_in`, `timeline_out` | float | Timeline positioning (**required**) |
 | `speed` | float | Playback speed (0.1-100) |
 | `loop_mode` | boolean | If `true`, the audio loops to fill the duration between `timeline_in` and `timeline_out`. If `false` or omitted, audio plays once and stops. |
 | `effects` | Effect[] | Effects applied to this clip |
@@ -150,7 +150,7 @@ Top-level structure:
 | `font_color_opacity` | float | 0-1 |
 | `font_face` | object | `{ bold, italic, underline }` (booleans) |
 | `x`, `y` | float | Position |
-| `timeline_in`, `timeline_out` | float | Display duration |
+| `timeline_in`, `timeline_out` | float | Timeline positioning (**required**) |
 | `alignment` | string | TopLeft, TopCenter, TopRight, CenterLeft, CenterCenter, CenterRight, BottomLeft, BottomCenter (default), BottomRight |
 | `adapt_mode` | string | AutoWrap, AutoScale, AutoWrapAtSpaces |
 | `spacing` | int | Character spacing (pixels) |
@@ -169,8 +169,8 @@ Top-level structure:
 |-------|------|-------------|
 | `type` | string | `VFX` or `Filter` |
 | `sub_type` | string | Specific effect subtype |
-| `timeline_in` | float | Start position |
-| `timeline_out` | float | End position |
+| `timeline_in` | float | Start position (**required**) |
+| `timeline_out` | float | End position (**required**) |
 | `duration` | float | Effect duration |
 | `x`, `y`, `width`, `height` | float | Effect region (for mosaic/blur) |
 
