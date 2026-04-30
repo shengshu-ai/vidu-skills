@@ -152,7 +152,7 @@ vidu-cli quota credit
 | `3.1_pro` | Q2 pro | `character2video` only |
 | `3.2_fast_m` | Q3 fast | text2image / reference2image only |
 | `3.2_pro_m` | Q3 pro | text2image / reference2image only |
-| `3.2_image_2` | Q3 image v2 | text2image / reference2image only |
+| `3.2_image_2` | 全能Image 2 (GPT-Image 2) | text2image / reference2image only; multimodal visual generation model with strong text rendering accuracy, suitable for commercial design needs including marketing posters, product promotion, UI/web interfaces, data infographics, and IP character series images |
 
 ### `--duration`
 
