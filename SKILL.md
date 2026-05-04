@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.8
+version: 1.4.9
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -119,12 +119,13 @@ Content you send (prompts, images, task settings) goes to Vidu’s API. Confirm 
 ### For task submit (generation tasks)
 
 1. Pick capability → map to `--type` and options using **references/parameters.md** (matrix + validation).
-2. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; for **character2video** with `3.2_a`, also supports `--video` (max 3); optional `[@name]` in prompt per **references/parameters.md**.
-3. *(Optional)* Query cost before submitting: use `task cost`, `task tts-cost`, or `task lip-sync-cost` to estimate credit usage and check eligibility.
-4. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
+2. Always pass `--resolution`; default to `1080p` unless the user explicitly requests a different supported value.
+3. Prepare inputs: for **reference2image** / **character2video**, `--image` and/or `--material` so **combined count is 1–7**; for **character2video** with `3.2_a`, also supports `--video` (max 3); optional `[@name]` in prompt per **references/parameters.md**.
+4. *(Optional)* Query cost before submitting: use `task cost`, `task tts-cost`, or `task lip-sync-cost` to estimate credit usage and check eligibility.
+5. `vidu-cli task submit ...` → store `task_id` and `trace_id`.
    - **schedule-mode auto-detection**: if `--schedule-mode` is omitted, CLI queries claw-pass status and uses `claw_pass` when user has an active pass, otherwise `normal`. If submit fails with `ClawPassExplicitModeRequired`, tell the user their daily claw-pass quota is exhausted. Do not retry automatically — suggest re-submitting with `--schedule-mode normal` to use credits instead, or waiting for the next quota refresh.
-5. `vidu-cli task get <task_id>` until `success` or `failed`; use `--output <dir>` to download media on success.
-6. On success return `downloaded_files` (if `--output` used) or prompt user to re-run with `--output`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
+6. `vidu-cli task get <task_id>` until `success` or `failed`; use `--output <dir>` to download media on success.
+7. On success return `downloaded_files` (if `--output` used) or prompt user to re-run with `--output`; on task failure return `err_code` / `err_msg`; on CLI `ok: false` return `error` fields verbatim.
 
 ### For task compose (video composition)
 

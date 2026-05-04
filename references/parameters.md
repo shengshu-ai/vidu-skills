@@ -58,7 +58,7 @@ vidu-cli task submit \
   --model-version <version> \
   [--aspect-ratio <ratio>] \
   [--transition <mode>] \
-  [--resolution <res>] \
+  --resolution <res> \
   [--sample-count <n>] \
   [--codec <codec>] \
   [--movement-amplitude <amp>] \
@@ -160,11 +160,12 @@ vidu-cli quota credit
 - **text2video**, **img2video**, **headtailimg2video**, **character2video**: valid ranges depend on `model_version` (see matrix above; e.g. 3.1 often 2–8s, 3.2 often 1–16s)
 - **3.2_a** (all supported video types): `-1` (model auto-infers duration based on your inputs — prompt, audio length, etc.) or `4–15` (inclusive). Any other value causes a validation error.
 
-### `--resolution` (optional; default 1080p where applicable)
+### `--resolution` (required; default choice 1080p)
 
 - **text2image**: `1080p`, `2k`, `4k`
 - **reference2image**: `1080p`, `2k`, `4k`
 - **Video tasks**: `1080p` only
+- If the user does not request a specific supported resolution, pass `--resolution 1080p`.
 
 ### `--aspect-ratio` (optional; task-dependent)
 
@@ -517,7 +518,7 @@ For video/image task types: `text2image`, `text2video`, `img2video`, `headtailim
 | `--type` | Yes | - | Task type (video/image types only) |
 | `--model-version` | Yes | - | Model version |
 | `--duration` | Yes | - | Duration in seconds |
-| `--resolution` | No | 1080p | Resolution |
+| `--resolution` | Yes | 1080p | Resolution |
 | `--aspect-ratio` | No | - | Aspect ratio |
 | `--transition` | No | - | Transition style |
 | `--sample-count` | No | 1 | Sample count |
@@ -704,7 +705,7 @@ All commands return one JSON line on stdout.
 - `type` must match a supported task.
 - `model_version` must be allowed for that task (see matrix).
 - `duration` must fit model + task.
-- `resolution` must be supported for the task type.
+- `resolution` must be passed and must be supported for the task type. If the user does not specify a resolution, pass `1080p`.
 - Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
 - Do not pass `transition` for reference tasks or **text2image**.
 - For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**. Violating either constraint causes a validation error.
