@@ -54,7 +54,7 @@ vidu-cli task submit \
   [--material "name:id:version"] \
   [--audio <path|ssupload_uri>] \
   [--video <path|ssupload_uri>] \
-  --duration <seconds> \
+  [--duration <seconds>] \
   --model-version <version> \
   [--aspect-ratio <ratio>] \
   [--transition <mode>] \
@@ -156,7 +156,7 @@ vidu-cli quota credit
 
 ### `--duration`
 
-- **text2image**, **reference2image**: `0` (required — these are image tasks with no duration; passing any other value causes a validation error)
+- **text2image**, **reference2image**: optional (image tasks have no duration; if passed, must be `0`)
 - **text2video**, **img2video**, **headtailimg2video**, **character2video**: valid ranges depend on `model_version` (see matrix above; e.g. 3.1 often 2–8s, 3.2 often 1–16s)
 - **3.2_a** (all supported video types): `-1` (model auto-infers duration based on your inputs — prompt, audio length, etc.) or `4–15` (inclusive). Any other value causes a validation error.
 
@@ -241,7 +241,6 @@ vidu-cli task submit \
 vidu-cli task submit \
   --type text2image \
   --prompt "A beautiful sunset over the ocean" \
-  --duration 0 \
   --model-version 3.2_image_2 \
   --resolution 2k
 ```
@@ -393,7 +392,6 @@ vidu-cli task submit \
   --type reference2image \
   --prompt "[@aliya] portrait in watercolor style" \
   --material "aliya:3073530415201165:1765430214" \
-  --duration 0 \
   --model-version 3.1 \
   --aspect-ratio 16:9 \
   --resolution 2k
@@ -407,7 +405,6 @@ vidu-cli task submit \
   --prompt "[@aliya] portrait in watercolor style" \
   --material "aliya:3073530415201165:1765430214" \
   --image /path/to/auxiliary.jpg \
-  --duration 0 \
   --model-version 3.1 \
   --aspect-ratio 16:9 \
   --resolution 2k
@@ -420,7 +417,6 @@ vidu-cli task submit \
   --type reference2image \
   --prompt "Portrait in watercolor style, soft lighting" \
   --image /path/to/ref.jpg \
-  --duration 0 \
   --model-version 3.1 \
   --aspect-ratio 16:9 \
   --resolution 2k
@@ -517,7 +513,7 @@ For video/image task types: `text2image`, `text2video`, `img2video`, `headtailim
 |-----------|----------|---------|-------------|
 | `--type` | Yes | - | Task type (video/image types only) |
 | `--model-version` | Yes | - | Model version |
-| `--duration` | Yes | - | Duration in seconds |
+| `--duration` | No | - | Duration in seconds (required for video tasks; optional for image tasks) |
 | `--resolution` | Yes | 1080p | Resolution |
 | `--aspect-ratio` | No | - | Aspect ratio |
 | `--transition` | No | - | Transition style |
@@ -554,7 +550,7 @@ vidu-cli task lip-sync-cost \
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `--duration` | Yes | - | Duration in seconds |
+| `--duration` | No | - | Duration in seconds (required for video tasks; optional for image tasks) |
 | `--voice-id` | No | English_Aussie_Bloke | Voice ID (from `task lip-sync-voices`) |
 | `--speed` | No | 1.0 | Speech speed: 0.5-2.0 |
 | `--volume` | No | 0 | Volume [0.5,2], or 0 for server default |
