@@ -73,7 +73,8 @@ vidu-cli task submit \
   --prompt "slow camera push-in" \
   --image ./photo.jpg \
   --model-version 3.2 \
-  --duration 5
+  --duration 5 \
+  --transition pro
 
 # Text-to-speech
 vidu-cli task tts \
