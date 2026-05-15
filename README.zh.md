@@ -73,7 +73,8 @@ vidu-cli task submit \
   --prompt "镜头缓慢推进" \
   --image ./photo.jpg \
   --model-version 3.2 \
-  --duration 5
+  --duration 5 \
+  --transition pro
 
 # 文字转语音
 vidu-cli task tts \
