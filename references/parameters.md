@@ -23,9 +23,9 @@ Daily use: **`vidu-cli`** flags and the sections below.
 - **text-to-video**: Text only.
 - **image-to-video**: One image + text; aspect ratio comes from the image.
 - **head-tail-image-to-video**: Two images (start, end) + text.
-- **reference2image** and **character2video** — same input rule: **image count + material count must be ≥ 1 and ≤ 7** (each `--image` and each `--material` counts toward the total). **Text prompt (`--prompt`) is required** for both (cannot omit or leave empty).
+- **reference2image** and **character2video** — same input rule: **image count + material count must be ≥ 1 and ≤ 7** (each `--image` and each `--material` counts toward the total). **Text prompt (`--prompt` or `--prompt-path`) is required** for both (cannot omit or leave empty).
 - **lip-sync**: Drive video mouth movement with text-to-speech or audio file. Two modes: **text mode** (TTS with voice selection) or **audio mode** (custom audio file). Video: MP4/MOV/AVI, ≤500MB. Audio: MP3/WAV/AAC/M4A, ≤100MB.
-- **TTS**: Convert text to speech audio. Uses `task tts` command (not `task submit`). Requires `--prompt` and `--voice-id`. List voices with `task tts-voices`.
+- **TTS**: Convert text to speech audio. Uses `task tts` command (not `task submit`). Requires `--voice-id` and one of `--prompt`, `--prompt-path`, or `--text`. `--prompt` / `--prompt-path` are for single-segment input; `--text` is for multi-segment input. List voices with `task tts-voices`.
 - **When is `element create` needed?** `element create` saves a reference for **future reuse** across multiple tasks. It is **not required** for one-off generation — just pass `--image` directly. Use `--material` (with `[@name]` in prompt) only when referencing a **previously saved** or **community** element. You may combine `--image` and `--material` as long as the total stays in 1–7.
 - **Create References**: `vidu-cli element create --name ... --image ...` runs check → preprocess → create; returns element `id` and `version`.
 - **List personal references**: `vidu-cli element list [--keyword kw]`.
@@ -203,10 +203,32 @@ Use **`vidu-cli` flags only** — do not hand-craft request bodies or invent ext
 
 | CLI | Role |
 |-----|------|
-| `--prompt` | Text prompt (respect length limits, e.g. up to 4096 chars) |
+| `--prompt` | Inline text prompt (respect length limits, e.g. up to 4096 chars). Use `--prompt-path <path>` to load the prompt from a file instead. When both flags are passed, `--prompt` wins. |
+| `--prompt-path` | Read the prompt from a UTF-8 file (≤1MiB; one trailing newline is stripped). Available wherever `--prompt` is documented (`task submit`, `task tts`). |
 | `--image` | Images (paths, URLs, or `ssupload` URIs after upload) |
 | `--material` | Reference material ids |
 | `input.enhance` / recaption | **No CLI flag** — handled internally by `vidu-cli` (do not invent a flag). |
+
+---
+
+### Prompt input formats
+
+Wherever `--prompt` is supported, you can pass the prompt as inline text or as a file:
+
+- **Inline text** — `--prompt "A cat walks in the snow"`
+- **From a file** — `--prompt-path prompts/scene.txt`
+
+`--prompt-path` requires a UTF-8 file ≤1 MiB; one trailing newline is stripped. When both `--prompt` and `--prompt-path` are passed, `--prompt` wins (no warning is emitted). On `task tts`, `--prompt-path` is mutually exclusive with `--text`.
+
+```bash
+echo 'A neon-lit alley after the rain' > prompts/alley.txt
+vidu-cli task submit \
+  --type text2video \
+  --prompt-path prompts/alley.txt \
+  --duration 5 \
+  --model-version 3.2 \
+  --resolution 1080p
+```
 
 ---
 
@@ -386,7 +408,7 @@ vidu-cli task submit \
 
 ### 6. reference-to-image
 
-Same limits as **character2video**: **images + materials between 1 and 7**, **non-empty `--prompt` required**.
+Same limits as **character2video**: **images + materials between 1 and 7**, **non-empty prompt text is required** (`--prompt` or `--prompt-path`).
 
 **With a saved reference:**
 
@@ -413,7 +435,7 @@ vidu-cli task submit \
   --resolution 2k
 ```
 
-**Images only (no subject)** — still must pass `--prompt`:
+**Images only (no subject)** — still must pass prompt text (`--prompt` or `--prompt-path`):
 
 ```bash
 vidu-cli task submit \
@@ -488,7 +510,9 @@ vidu-cli task tts \
 
 | Parameter | Required | Default | Range | Description |
 |-----------|----------|---------|-------|-------------|
-| `--prompt` | Yes | - | 1-2000 chars | Text to convert to speech |
+| `--prompt` | One of\* | - | 1-2000 chars | Inline text to convert to speech. |
+| `--prompt-path` | One of\* | - | UTF-8 file ≤1MiB | Read the prompt from a file (one trailing newline stripped). Ignored when `--prompt` is also set. Mutually exclusive with `--text`. |
+| `--text` | One of\* | - | 1-20 segments | Repeatable segment input for multi-segment TTS. Mutually exclusive with `--prompt` and `--prompt-path`. |
 | `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` only; do not use `lip-sync-voices` IDs here — using wrong pool causes a validation error. |
 | `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
 | `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |

@@ -90,12 +90,12 @@ vidu-cli task tts-voices
 | Command | Purpose |
 |---------|---------|
 | `vidu-cli upload <image>` | Upload image, returns `upload_id` |
-| `vidu-cli task submit --type ... --prompt ...` | Submit task, returns `task_id` |
+| `vidu-cli task submit --type ... [--prompt ... | --prompt-path ...]` | Submit task, returns `task_id` |
 | `vidu-cli task get <task_id> [--output dir]` | Query task status, optionally download result |
 | `vidu-cli task compose --timeline <json>` | Video compose, returns `task_id` |
 | `vidu-cli task lip-sync --video ... --text ...` | Lip sync (TTS mode) |
 | `vidu-cli task lip-sync --video ... --audio ...` | Lip sync (audio file mode) |
-| `vidu-cli task tts --prompt ... --voice-id ...` | Text-to-speech |
+| `vidu-cli task tts [--prompt ... | --prompt-path ... | --text ...] --voice-id ...` | Text-to-speech |
 | `vidu-cli element create --name ... --image ... [--description ...] [--style ...]` | Create reference element |
 | `vidu-cli element check --name ...` | Check element name availability |
 | `vidu-cli element list [--keyword kw]` | List personal elements |

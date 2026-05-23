@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.10
+version: 1.4.11
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -41,13 +41,13 @@ Generate AI videos and images with Vidu via `vidu-cli` — text-to-image, text-t
 | Command | Purpose |
 |---------|---------|
 | `vidu-cli upload <image_path>` | Upload image → `upload_id`, `ssupload_uri` |
-| `vidu-cli task submit --type ... --prompt ... [options]` | Submit task → `task_id`. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). `--video`: local path or `ssupload:?id=...` (character2video + 3.2_a only, auto-upload; URLs not supported). `--audio`: local path or `ssupload:?id=...` (character2video + 3.2_a only; URLs not supported). |
+| `vidu-cli task submit --type ... [--prompt TEXT \| --prompt-path PATH] [options]` | Submit task → `task_id`. `--prompt` is inline text; `--prompt-path` reads a UTF-8 file (≤1MiB). When both are given, `--prompt` wins. `--image`: local path, URL, or `ssupload:?id=...` (auto-upload). `--video`: local path or `ssupload:?id=...` (character2video + 3.2_a only, auto-upload; URLs not supported). `--audio`: local path or `ssupload:?id=...` (character2video + 3.2_a only; URLs not supported). |
 | `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task → `state`, `type`, `model`; use `--output` to download media on success |
 | `vidu-cli task compose --timeline <json> [--width N --height N] [--schedule-mode <mode>]` | Compose video from timeline → `task_id`. Query with `task get`. Supports `--schedule-mode` (auto-detected if omitted). **MUST read references/compose.md before building the timeline JSON — do not guess the schema.** |
 | `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with audio file → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task lip-sync-voices` | List available lip-sync voices (90+, Chinese/English/Cantonese/Cartoon etc.) |
-| `vidu-cli task tts --prompt ... --voice-id ...` | Text-to-speech → `task_id`. Supports `--schedule-mode` (auto-detected if omitted). |
+| `vidu-cli task tts [--prompt TEXT \| --prompt-path PATH] --voice-id ...` | Text-to-speech → `task_id`. `--prompt` is inline text; `--prompt-path` reads a UTF-8 file (≤1MiB). Multi-segment `--text` remains supported. `--prompt` wins when both are given. `--prompt-path` is mutually exclusive with `--text`. Supports `--schedule-mode` (auto-detected if omitted). |
 | `vidu-cli task tts-voices` | List available TTS voices (300+, 20+ languages) |
 | `vidu-cli task cost --type ... --model-version ... --duration ...` | Query credit cost for video/image tasks (estimate before submitting) |
 | `vidu-cli task tts-cost --text ... --voice-id ...` | Query credit cost for TTS tasks (priced by character count; `--text` required) |
