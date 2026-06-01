@@ -35,6 +35,29 @@ Daily use: **`vidu-cli`** flags and the sections below.
 
 ## CLI commands (overview)
 
+### Command map
+
+| Command | Purpose |
+|---------|---------|
+| `vidu-cli upload <image_path>` | Upload image and return `upload_id`, `ssupload_uri`. Usually optional because image flags auto-upload. |
+| `vidu-cli task submit --type ... [--prompt TEXT \| --prompt-path PATH] [options]` | Submit image/video generation and return `task_id`, `trace_id`. |
+| `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task state; use `--output` to download successful media and subtitle JSON when present. |
+| `vidu-cli task compose --timeline <json-or-file> [--width N --height N] [--schedule-mode <mode>]` | Compose a video timeline. Read `compose.md` before building the timeline schema. |
+| `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech voice selection. |
+| `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with a custom audio file. |
+| `vidu-cli task lip-sync-voices` | List lip-sync voice IDs. Do not use TTS voice IDs for lip-sync. |
+| `vidu-cli task tts [--prompt TEXT \| --prompt-path PATH \| --text TEXT] --voice-id ...` | Text-to-speech; returns `task_id`. |
+| `vidu-cli task tts-voices` | List TTS voice IDs. Do not use lip-sync voice IDs for TTS. |
+| `vidu-cli task cost --type ... --model-version ... --duration ...` | Estimate video/image task credit cost. |
+| `vidu-cli task tts-cost --text ... --voice-id ...` | Estimate TTS credit cost. |
+| `vidu-cli task lip-sync-cost --duration ... [--voice-id ...]` | Estimate lip-sync credit cost. |
+| `vidu-cli quota pass` | Query claw-pass daily quota status. |
+| `vidu-cli quota credit` | Query credit balance. |
+| `vidu-cli element check --name ...` | Check reference element name availability. |
+| `vidu-cli element create --name ... --image ... [--description ...] [--style ...]` | Create a reusable reference element. |
+| `vidu-cli element list [--keyword kw]` | List personal reference elements. |
+| `vidu-cli element search --keyword kw` | Search community reference elements. |
+
 ### Upload image
 
 ```bash
@@ -66,6 +89,39 @@ vidu-cli task submit \
 ```
 
 `--image` and `--material` may be repeated where applicable. `--audio` may be repeated (character2video + 3.2_a only, max 3). `--video` may be repeated (character2video + 3.2_a only, max 3, total local video duration ≤ 15s).
+
+### Smart input handling
+
+`--image` (`task submit`, `element create`):
+
+- Local path: auto-uploaded; images larger than 10MB are compressed before upload.
+- HTTP/HTTPS URL: downloaded by the CLI, then uploaded.
+- `ssupload:?id=...`: passed through as an existing upload reference.
+
+`--video` and `--audio` (`task submit`, `character2video` with `3.2_a` only):
+
+- Local path: auto-uploaded.
+- `ssupload:?id=...`: passed through as an existing upload reference.
+- HTTP/HTTPS URL: not supported and rejected by validation.
+
+### `--material` (CRITICAL: repeat the flag for each character)
+
+Use exactly one `--material` flag per saved element. Do not combine multiple elements inside one string.
+
+**CORRECT (multiple characters)**
+
+```bash
+--material "王总:3301792115986812:1779362202" \
+--material "林小白:3301791869364813:1779362187" \
+--material "张经理:3301746243845326:1779359403"
+```
+
+**WRONG (will fail or bind references incorrectly)**
+
+```bash
+--material "王总:3301792115986812:1779362202,林小白:3301791869364813:1779362187"
+--material "王总:3301792115986812:1779362202 林小白:3301791869364813:1779362187"
+```
 
 ### Query task
 
@@ -153,6 +209,17 @@ vidu-cli quota credit
 | `3.2_fast_m` | Q3 fast | text2image / reference2image only |
 | `3.2_pro_m` | Q3 pro | text2image / reference2image only |
 | `3.2_image_2` | 全能Image 2 (GPT-Image 2) | text2image / reference2image only; multimodal visual generation model with strong text rendering accuracy, suitable for commercial design needs including marketing posters, product promotion, UI/web interfaces, data infographics, and IP character series images |
+
+**Model nicknames / aliases**
+
+- Q1: `3.0`
+- Q2: `3.1`
+- Q2 Pro: `3.1_pro`
+- Q3: `3.2`
+- Q3-A / Omni Video Pro / 全能Video Pro: `3.2_a`
+- 全能Q3 Fast: `3.2_fast_m`
+- 全能Q3 Pro: `3.2_pro_m`
+- 全能Image 2 / GPT-Image 2: `3.2_image_2`
 
 ### `--duration`
 
@@ -327,6 +394,8 @@ vidu-cli task submit \
 
 **With a saved reference (subject)** — `[@name]` matches `--material` (count toward the 1–7 total):
 
+**character2video (single character, canonical template)**
+
 ```bash
 vidu-cli task submit \
   --type character2video \
@@ -338,6 +407,23 @@ vidu-cli task submit \
   --transition pro \
   --resolution 1080p
 ```
+
+**character2video (multiple characters, canonical template)**
+
+```bash
+vidu-cli task submit \
+  --type character2video \
+  --prompt "[@王总] sits at the head of the conference table while [@林小白] presents evidence and [@张经理] reacts nervously" \
+  --material "王总:3301792115986812:1779362202" \
+  --material "林小白:3301791869364813:1779362187" \
+  --material "张经理:3301746243845326:1779359403" \
+  --duration 5 \
+  --model-version 3.1 \
+  --aspect-ratio 9:16 \
+  --resolution 1080p
+```
+
+For multiple saved characters, add one more `--material "NAME:ELEMENT_ID:VERSION"` line per character. Never comma-join materials.
 
 **With 3.2_a model — full inputs (text prompt + subject/material + image + audio)**:
 
@@ -498,6 +584,10 @@ Returns: `{"ok": true, "count": 90+, "voice_ids": [...]}`
 
 ### 8. TTS (Text-to-Speech)
 
+TTS is its own subcommand. Do not use `task submit --type tts`.
+
+**Canonical argv template**
+
 ```bash
 vidu-cli task tts \
   --prompt "text" \
@@ -509,6 +599,14 @@ vidu-cli task tts \
   --language-boost "Chinese"
 ```
 
+When using tools that accept argv arrays, pass the same command as direct argv:
+
+```json
+["vidu-cli","task","tts","--prompt","text","--voice-id","Chinese (Mandarin)_Reliable_Executive","--speed","1.0","--language-boost","Chinese"]
+```
+
+Do not use `sh -c`, shell command substitution, or `$(cat file)` for TTS. If the TTS text lives in a file, read the file first and pass its content as the `--prompt` value.
+
 | Parameter | Required | Default | Range | Description |
 |-----------|----------|---------|-------|-------------|
 | `--prompt` | One of\* | - | 1-2000 chars | Inline text to convert to speech. |
@@ -519,12 +617,22 @@ vidu-cli task tts \
 | `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
 | `--emotion` | No | - | Any text | Emotion hint |
 | `--language-boost` | No | - | Chinese, English, auto | Enhance specific language recognition |
-| `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Omitted means true; use `--subtitle-enable false` to disable it. First version supports subtitle output only with single `--prompt`, so multi-segment `--text` mode requires `--subtitle-enable false`. |
+| `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Omitted means true; `--subtitle-enable` and `--subtitle-enable true` are equivalent; use `--subtitle-enable false` to disable it. First version supports subtitle output only with single `--prompt`, so multi-segment `--text` mode requires `--subtitle-enable false`. |
 | `--schedule-mode` | No | auto | claw_pass, normal | Schedule mode: `claw_pass` (use daily quota) or `normal` (use credits). Auto-detected from claw-pass status if omitted. |
 
 List available voices: `vidu-cli task tts-voices` (grouped by language with count)
 
 Returns task_id — query result with `task get <task_id>`.
+
+**Wrong TTS command shapes**
+
+```bash
+vidu-cli task submit --type tts --prompt "text" --voice-id "..."
+sh -c 'vidu-cli task tts --prompt "$(cat tts_prompt.txt)" --voice-id "..."'
+vidu-cli task tts --prompt "text"
+```
+
+The last command is invalid because `--voice-id` is required.
 
 ### 9. Query credit cost (video/image tasks)
 
@@ -644,6 +752,14 @@ Returns: `upload_id`, `ssupload_uri`. Usually unnecessary — `task submit --ima
 
 ## Material elements (references)
 
+### Check reference element name
+
+```bash
+vidu-cli element check --name "my_character"
+```
+
+Use before creating an element when you need to know whether a name is available. `element create` also checks the name as part of its normal create flow.
+
 ### Create reference element
 
 One command performs name check → preprocess (AI description/style) → create:
@@ -709,6 +825,8 @@ Present results with `id`, `version`, `name`, `description`, `category` when ava
 
 All commands return one JSON line on stdout.
 
+API-backed responses usually include `trace_id`; keep it when reporting submit/query results because it is useful for support and debugging.
+
 **Success (submit)**
 
 ```json
@@ -720,6 +838,22 @@ All commands return one JSON line on stdout.
 ```json
 {"ok": false, "error": {"type": "client_error|http_error|network_error|parse_error", "message": "...", "http_status": 422, "code": "invalid_param"}}
 ```
+
+**Error type meanings**
+
+| Type | Meaning |
+|------|---------|
+| `http_error` | API returned 4xx/5xx; response may include `http_status`, `code`, and `message`. |
+| `network_error` | Connection failure, DNS failure, or timeout. |
+| `parse_error` | API response was not valid JSON. |
+| `client_error` | Local CLI issue such as missing token, bad path, unsupported command shape, or validation failure. |
+
+**What to report**
+
+- After submit: return `task_id` and `trace_id`; tell the user processing is in progress.
+- After query: if `state` is `success`, return `downloaded_files` when `--output` was used; otherwise return the `task_id` and say to query with `--output <dir>` to download.
+- If task `state` is `failed`, return `err_code` and `err_msg` exactly. Note that `ok` can still be `true` for a failed task state.
+- On CLI failure (`ok: false`), report `error.type`, `http_status`, `code`, and `message` exactly when present.
 
 **Never guess** — report `error` fields exactly. Retry behavior: **errors_and_retry.md**.
 
@@ -747,3 +881,12 @@ The `--material` flag uses the format `name:id:version` where:
 - `version`: the element version
 
 Example: `--material "aliya:3073530415201165:1765430214"` pairs with `[@aliya]` in the prompt text. The `[@name]` in the prompt is optional — it helps the model associate the reference with specific parts of the prompt, but generation works without it.
+
+For multiple elements, repeat the entire flag:
+
+```bash
+--material "NAME_1:ELEMENT_ID_1:VERSION_1" \
+--material "NAME_2:ELEMENT_ID_2:VERSION_2"
+```
+
+Do not pass comma-separated or space-separated material lists inside one `--material` value.

@@ -48,6 +48,27 @@ npm install -g vidu-cli@latest
 | `VIDU_BASE_URL` | 否 | 默认 `https://service.vidu.cn`（中国大陆）；海外用 `https://service.vidu.com` |
 | `VIDU_DEBUG` | 否 | 设为 `1` 可打印完整响应体到 stderr |
 
+## 数据使用与隐私
+
+本 Skill 会把用户提供的数据发送到 Vidu 服务器：
+
+- 文本提示词会发送到 Vidu API。
+- 本地图片、视频、音频文件作为任务输入使用时，会上传到 Vidu API 服务器（`service.vidu.cn` 或 `service.vidu.com`）。
+- 任务参数（如设置、模型版本、时长、分辨率等）会发送到 Vidu API。
+
+使用本 Skill 前，请确认将相关内容发送给 Vidu 符合你的隐私和知识产权要求。数据处理遵循 Vidu 官方政策。
+
+安全建议：
+
+- 如有可能，创建权限范围受限的 Token。
+- 初次测试时避免使用生产环境或高权限 Token。
+- 查看 Vidu 服务条款和隐私政策。
+
+Vidu 条款与隐私：
+
+- 海外：https://www.vidu.com/terms
+- 中国大陆：https://www.vidu.cn/terms
+
 ## 快速上手
 
 ```bash
