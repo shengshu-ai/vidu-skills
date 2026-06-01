@@ -48,6 +48,27 @@ npm install -g vidu-cli@latest
 | `VIDU_BASE_URL` | No | Default `https://service.vidu.cn` (mainland China); use `https://service.vidu.com` for overseas |
 | `VIDU_DEBUG` | No | Set to `1` to print full response body to stderr |
 
+## Data Usage and Privacy
+
+This skill sends user-provided data to Vidu's servers:
+
+- Text prompts are sent to the Vidu API.
+- Local images, videos, and audio files are uploaded to Vidu API servers (`service.vidu.cn` or `service.vidu.com`) when used as task inputs.
+- Task parameters such as settings, model version, duration, and resolution are sent to the Vidu API.
+
+Before using this skill, confirm that sending your content to Vidu is acceptable for your privacy and intellectual property requirements. Data handling follows Vidu's official policy.
+
+Security recommendations:
+
+- Create a token with limited scope if possible.
+- Avoid using production or privileged tokens for initial testing.
+- Review Vidu's terms of service and privacy policy.
+
+Vidu terms and privacy:
+
+- Overseas: https://www.vidu.com/terms
+- Mainland China: https://www.vidu.cn/terms
+
 ## Quick Start
 
 ```bash
