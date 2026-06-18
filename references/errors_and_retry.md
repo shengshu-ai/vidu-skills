@@ -48,6 +48,12 @@ The CLI does **not** block waiting for task completion: `vidu-cli task submit` r
 | `task submit --type tts` | TTS was routed through the generic submit path | Use `vidu-cli task tts`, then poll with `vidu-cli task get <task_id>` |
 | `submit succeeded but no task_id found` | CLI output did not contain a provider task id | Inspect stdout/stderr exactly; do not resubmit until the first submit result is understood |
 | `ClawPassExplicitModeRequired` | Auto-selected claw-pass quota is exhausted | Do not retry automatically; use `--schedule-mode normal` only if the user agrees to spend credits |
+| `unexpected argument '--model'` | Used a non-existent flag name | Replace with `--model-version` |
+| `unexpected argument '--voice'` | Used the old TTS flag name | Replace with `--voice-id` |
+| `unexpected argument '--motion-prompt'`, `--negative-prompt`, `--prompt-file`, `--mode` | Invented flags that the CLI does not support | Remove invented flags and rebuild the command from `vidu-cli ... --help` |
+| `invalid value '10s' for '--duration <DURATION>'` | Duration was passed as a string with a unit suffix | Pass integer seconds only, e.g. `10` |
+| `... with 3.2_a should not include transition` | `--transition` was passed to a task/model pair that rejects it | Remove `--transition`; `3.2_a` does not accept it for `text2video` or `character2video` |
+| `Invalid voice_id '...'` | Voice ID is not in the current TTS voice catalog | Run `vidu-cli task tts-voices`, choose an exact returned ID, and resubmit |
 
 ### `ClawPassExplicitModeRequired`
 
@@ -58,6 +64,7 @@ Returned on submit when `--schedule-mode` is omitted (auto-detected as `claw_pas
 ## Network and client errors (CLI `ok: false`)
 
 - **4xx on submit**: Inspect `error.type`, `code`, `message`; fix parameters or token. **Do not retry** — 4xx errors indicate invalid input or authentication issues that won't resolve by retrying.
+- **CLI validation / clap parse errors** such as `unexpected argument`, `invalid value`, or missing required flags: **Do not retry**. These are local command-shape bugs, not transient failures.
 - **5xx or connection error on submit**: Retry with backoff (e.g. 1s, 2s, 4s), limited attempts (e.g. up to 3). If still failing, report the error to the user.
 - **Upload / network errors** during image handling: Same idea — bounded retries, then surface **`error`** fields verbatim.
 - **Timeouts on `task get`**: Retry once or twice with a 30-second timeout per request; if still failing, report that the result could not be fetched and suggest trying again later.

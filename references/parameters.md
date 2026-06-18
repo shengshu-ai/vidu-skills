@@ -615,7 +615,7 @@ Do not use `sh -c`, shell command substitution, or `$(cat file)` for TTS. If the
 | `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` only; do not use `lip-sync-voices` IDs here — using wrong pool causes a validation error. |
 | `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
 | `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
-| `--emotion` | No | - | Any text | Emotion hint |
+| `--emotion` | No | - | happy, sad, angry, fearful, disgusted, surprised, calm, fluent, whisper | Emotion hint |
 | `--language-boost` | No | - | Chinese, English, auto | Enhance specific language recognition |
 | `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Omitted means true; `--subtitle-enable` and `--subtitle-enable true` are equivalent; use `--subtitle-enable false` to disable it. First version supports subtitle output only with single `--prompt`, so multi-segment `--text` mode requires `--subtitle-enable false`. |
 | `--schedule-mode` | No | auto | claw_pass, normal | Schedule mode: `claw_pass` (use daily quota) or `normal` (use credits). Auto-detected from claw-pass status if omitted. |

@@ -1,7 +1,7 @@
 ---
 name: vidu-skills
 description: Generate video and images by calling the official Vidu API via vidu CLI. Use when the user wants text-to-image, text-to-video, image-to-video, head-tail-image-to-video, reference-to-image, reference-to-video, lip-sync, text-to-speech, video-compose, Create References, or to submit or check Vidu tasks. Requires VIDU_TOKEN and optional VIDU_BASE_URL.
-version: 1.4.14
+version: 1.4.15
 homepage: https://www.vidu.cn/
 primaryEnv: VIDU_TOKEN
 metadata: {"openclaw":{"requires":{"bins":["node","npm","vidu-cli"],"env":["VIDU_TOKEN"]},"primaryEnv":"VIDU_TOKEN","install":[{"id":"vidu-cli","kind":"node","package":"vidu-cli","bins":["vidu-cli"],"label":"Install vidu-cli via npm (requires Node.js >=14; postinstall downloads a platform binary from GitHub)"}]}}
@@ -22,6 +22,20 @@ Environment:
 - `VIDU_TOKEN` (required): Vidu API token.
 - `VIDU_BASE_URL` (optional): default `https://service.vidu.cn`; use `https://service.vidu.com` for overseas.
 - `VIDU_DEBUG=1` (optional): print full response body to stderr for debugging.
+
+## Preflight Checklist
+
+Before any submit/tts/compose/lip-sync call:
+
+- Use the exact CLI flag names from `vidu-cli ... --help`.
+- Use `--model-version`, never `--model`.
+- Use `--voice-id`, never `--voice`.
+- Pass integer seconds for `--duration`; never append `s`.
+- For `3.2_a`, do not pass `--transition` on `text2video` or `character2video`.
+- If a voice is user-chosen or copied from an older template, verify it with
+  `vidu-cli task tts-voices` before submit.
+- If stderr says `unexpected argument` or `invalid value`, treat that as a
+  parameter bug and correct it before retrying.
 
 For installation, token setup, and first-run checks, read `references/setup.md` only when the user is setting up the skill or the CLI is missing.
 
@@ -70,7 +84,7 @@ vidu-cli task submit --type reference2image --prompt "..." --image /path/a.png -
 
 vidu-cli task submit --type character2video --prompt "[@角色A] walks into office" --material "角色A:ID:VERSION" --duration 5 --model-version 3.2_a --resolution 1080p
 
-vidu-cli task tts --prompt "旁白文本" --voice-id Chinese_Mandarin_Gentleman --speed 1.3
+vidu-cli task tts --prompt "旁白文本" --voice-id "Chinese (Mandarin)_Gentleman" --speed 1.3
 ```
 
 ## Load References Only When Needed
