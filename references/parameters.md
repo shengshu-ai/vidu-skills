@@ -607,7 +607,7 @@ Do not use `sh -c`, shell command substitution, or `$(cat file)` for TTS. If the
 | `--voice-id` | Yes | - | See tts-voices | Voice ID. Alias: `--voice`. |
 | `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
 | `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
-| `--emotion` | No | - | Any text | Emotion hint |
+| `--emotion` | No | - | happy, sad, angry, fearful, disgusted, surprised, calm | Emotion hint for expressive speech |
 | `--language-boost` | No | - | Chinese, English, auto | Enhance specific language recognition |
 | `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Works with `--prompt` and single `--text`; errors on multi-segment `--text`. |
 | `--schedule-mode` | No | auto | claw_pass, normal | Schedule mode: `claw_pass` (use daily quota) or `normal` (use credits). Auto-detected from claw-pass status if omitted. |
