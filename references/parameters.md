@@ -197,7 +197,7 @@ vidu-cli quota credit
 
 ## CLI settings (`task submit`)
 
-### `--model-version` (required)
+### `--model-version` (alias `--model`) (required)
 
 | Value | Maps to | Notes |
 |-------|---------|-------|
@@ -563,7 +563,7 @@ vidu-cli task lip-sync \
 - `--text` and `--audio` are mutually exclusive (use one or the other)
 - `--speed`: 0.5–2.0 (default 1.0, text mode only)
 - `--volume`: 0.1–2.0, or 0 for server default (text mode only)
-- `--voice-id`: default `English_Aussie_Bloke` (250+ voices available, see voice list below). Voice IDs from `tts-voices` or `lip-sync-voices` (same pool).
+- `--voice-id` (alias `--voice`): default `English_Aussie_Bloke` (250+ voices available).
 - `--schedule-mode`: `claw_pass` (use daily quota) or `normal` (use credits). Optional — auto-detected from claw-pass status if omitted.
 - Duration is auto-calculated from text length or audio file
 
@@ -585,7 +585,6 @@ TTS is its own subcommand. Do not use `task submit --type tts`.
 vidu-cli task tts \
   --prompt "text" \
   --voice-id "Chinese (Mandarin)_Reliable_Executive" \
-  --subtitle-enable \
   --speed 1.0 \
   --volume 80 \
   --emotion "happy" \
@@ -605,12 +604,12 @@ Do not use `sh -c`, shell command substitution, or `$(cat file)` for TTS. If the
 | `--prompt` | One of\* | - | 1-2000 chars | Inline text to convert to speech. |
 | `--prompt-path` | One of\* | - | UTF-8 file ≤1MiB | Read the prompt from a file (one trailing newline stripped). Ignored when `--prompt` is also set. Mutually exclusive with `--text`. |
 | `--text` | One of\* | - | 1-20 segments | Repeatable segment input for multi-segment TTS. Mutually exclusive with `--prompt` and `--prompt-path`. |
-| `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` or `lip-sync-voices` (same pool). |
+| `--voice-id` | Yes | - | See tts-voices | Voice ID. Alias: `--voice`. |
 | `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
 | `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
 | `--emotion` | No | - | Any text | Emotion hint |
 | `--language-boost` | No | - | Chinese, English, auto | Enhance specific language recognition |
-| `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Omitted means true; `--subtitle-enable` and `--subtitle-enable true` are equivalent; use `--subtitle-enable false` to disable it. First version supports subtitle output only with single `--prompt`, so multi-segment `--text` mode requires `--subtitle-enable false`. |
+| `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Works with `--prompt` and single `--text`; errors on multi-segment `--text`. |
 | `--schedule-mode` | No | auto | claw_pass, normal | Schedule mode: `claw_pass` (use daily quota) or `normal` (use credits). Auto-detected from claw-pass status if omitted. |
 
 List available voices: `vidu-cli task tts-voices` (grouped by language with count)

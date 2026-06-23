@@ -57,7 +57,6 @@ Never use these:
 - `reference2image` and `character2video` require non-empty prompt plus 1-7 total references (`--image` + `--material`).
 - Image tasks use `--duration 0`; reusable `element create` has no `duration`.
 - For `character2video` with `3.2_a`, duration must be an explicit `4-15`; for other models, check `references/parameters.md`.
-- TTS subtitle output is enabled by default for single `--prompt` or `--prompt-path`; use `--subtitle-enable false` to disable it. Multi-segment `--text` mode currently requires `--subtitle-enable false`.
 - Download successful media with `vidu-cli task get <task_id> --output <dir>`; when `subtitle_uri` is present, this also downloads subtitle JSON.
 - Report CLI/API errors from JSON fields exactly; do not infer hidden causes.
 
