@@ -70,7 +70,7 @@ vidu-cli task submit --type reference2image --prompt "..." --image /path/a.png -
 
 vidu-cli task submit --type character2video --prompt "[@角色A] walks into office" --material "角色A:ID:VERSION" --duration 5 --model-version 3.2_a --resolution 1080p
 
-vidu-cli task tts --prompt "旁白文本" --voice-id Chinese_Mandarin_Gentleman --speed 1.3
+vidu-cli task tts --prompt "旁白文本" --voice-id "Chinese (Mandarin)_Gentleman" --speed 1.3
 ```
 
 ## Load References Only When Needed

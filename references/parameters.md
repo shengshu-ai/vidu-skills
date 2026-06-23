@@ -45,9 +45,9 @@ Daily use: **`vidu-cli`** flags and the sections below.
 | `vidu-cli task compose --timeline <json-or-file> [--width N --height N] [--schedule-mode <mode>]` | Compose a video timeline. Read `compose.md` before building the timeline schema. |
 | `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech voice selection. |
 | `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with a custom audio file. |
-| `vidu-cli task lip-sync-voices` | List lip-sync voice IDs. Do not use TTS voice IDs for lip-sync. |
+| `vidu-cli task lip-sync-voices` | List available voice IDs (same pool as tts-voices). |
 | `vidu-cli task tts [--prompt TEXT \| --prompt-path PATH \| --text TEXT] --voice-id ...` | Text-to-speech; returns `task_id`. |
-| `vidu-cli task tts-voices` | List TTS voice IDs. Do not use lip-sync voice IDs for TTS. |
+| `vidu-cli task tts-voices` | List available voice IDs (same pool as lip-sync-voices). |
 | `vidu-cli task cost --type ... --model-version ... --duration ...` | Estimate video/image task credit cost. |
 | `vidu-cli task tts-cost --text ... --voice-id ...` | Estimate TTS credit cost. |
 | `vidu-cli task lip-sync-cost --duration ... [--voice-id ...]` | Estimate lip-sync credit cost. |
@@ -563,24 +563,17 @@ vidu-cli task lip-sync \
 - `--text` and `--audio` are mutually exclusive (use one or the other)
 - `--speed`: 0.5–2.0 (default 1.0, text mode only)
 - `--volume`: 0.1–2.0, or 0 for server default (text mode only)
-- `--voice-id`: default `English_Aussie_Bloke` (90+ voices available, see voice list below). Voice IDs from `lip-sync-voices` only; do not use `tts-voices` IDs here — using wrong pool causes a validation error.
+- `--voice-id`: default `English_Aussie_Bloke` (250+ voices available, see voice list below). Voice IDs from `tts-voices` or `lip-sync-voices` (same pool).
 - `--schedule-mode`: `claw_pass` (use daily quota) or `normal` (use credits). Optional — auto-detected from claw-pass status if omitted.
 - Duration is auto-calculated from text length or audio file
 
-**Available voice IDs** (partial list, 90+ total):
-- English: `English_Aussie_Bloke`, `English_Trustworthy_Man`, `English_Graceful_Lady`, `English_Whispering_girl`, `English_Diligent_Man`, `English_Gentle-voiced_man`
-- Chinese: `male-qn-qingse`, `male-qn-jingying`, `male-qn-badao`, `male-qn-daxuesheng`, `female-shaonv`, `female-yujie`, `female-chengshu`, `female-tianmei`
-- Premium: `male-qn-qingse-jingpin`, `female-shaonv-jingpin`, etc.
-- Cartoon: `clever_boy`, `cute_boy`, `lovely_girl`, `cartoon_pig`
-- Cantonese: `Cantonese_ProfessionalHost（F)`, `Cantonese_GentleLady`, `Cantonese_ProfessionalHost（M)`, `Cantonese_PlayfulMan`
-
-To get the complete list of all 90+ voice IDs:
+**Available voice IDs**: 250+ voices across Chinese, English, Japanese, Korean, Spanish, Portuguese, and more. TTS and lip-sync share the same voice pool. List all available voices:
 
 ```bash
-vidu-cli task lip-sync-voices
+vidu-cli task tts-voices
 ```
 
-Returns: `{"ok": true, "count": 90+, "voice_ids": [...]}`
+Returns voices grouped by language.
 
 ### 8. TTS (Text-to-Speech)
 
@@ -612,7 +605,7 @@ Do not use `sh -c`, shell command substitution, or `$(cat file)` for TTS. If the
 | `--prompt` | One of\* | - | 1-2000 chars | Inline text to convert to speech. |
 | `--prompt-path` | One of\* | - | UTF-8 file ≤1MiB | Read the prompt from a file (one trailing newline stripped). Ignored when `--prompt` is also set. Mutually exclusive with `--text`. |
 | `--text` | One of\* | - | 1-20 segments | Repeatable segment input for multi-segment TTS. Mutually exclusive with `--prompt` and `--prompt-path`. |
-| `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` only; do not use `lip-sync-voices` IDs here — using wrong pool causes a validation error. |
+| `--voice-id` | Yes | - | See tts-voices | Voice ID. Voice IDs from `tts-voices` or `lip-sync-voices` (same pool). |
 | `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
 | `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
 | `--emotion` | No | - | Any text | Emotion hint |
@@ -688,7 +681,7 @@ vidu-cli task lip-sync-cost \
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `--duration` | No | - | Duration in seconds (required for video tasks; optional for image tasks) |
-| `--voice-id` | No | English_Aussie_Bloke | Voice ID (from `task lip-sync-voices`) |
+| `--voice-id` | No | English_Aussie_Bloke | Voice ID (from `task tts-voices`) |
 | `--speed` | No | 1.0 | Speech speed: 0.5-2.0 |
 | `--volume` | No | 0 | Volume [0.5,2], or 0 for server default |
 | `--codec` | No | h265 | Codec |
