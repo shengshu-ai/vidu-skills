@@ -6,7 +6,7 @@ Use this reference only for installation, credential setup, missing CLI errors, 
 
 - Node.js 14 or newer
 - npm
-- Vidu API token in `VIDU_TOKEN`
+- Vidu API token in `VIDU_TOKEN` (see [Obtaining a token](#obtaining-a-token))
 
 ## Install
 
@@ -28,6 +28,14 @@ export VIDU_BASE_URL="https://service.vidu.com"
 export VIDU_DEBUG=1
 ```
 
+### Obtaining a token
+
+Mainland China: log in at https://www.vidu.cn, open the account menu from the avatar in the lower-left corner, then copy the token from **Vidu Token**.
+
+Overseas: log in at https://www.vidu.com, open the account menu from the avatar in the left sidebar, then copy the token from **Vidu Token**.
+
+Screenshots for both regions: [README.md](../README.md#get-your-vidu-api-token).
+
 ## Verify
 
 ```bash
@@ -42,6 +50,6 @@ Every API-backed command prints one JSON object to stdout. Success includes `ok:
 ## Common Setup Failures
 
 - `vidu-cli: command not found`: install with npm or fix `PATH`.
-- Missing token: set `VIDU_TOKEN` in the execution environment.
+- Missing token: set `VIDU_TOKEN` in the execution environment; see [Obtaining a token](#obtaining-a-token).
 - Wrong region: set `VIDU_BASE_URL` to the user account's region.
 - Unknown command or flag: run `vidu-cli <subcommand> --help`; update `SKILL.md` if the CLI changed.
