@@ -48,6 +48,16 @@ npm install -g vidu-cli@latest
 | `VIDU_BASE_URL` | 否 | 默认 `https://service.vidu.cn`（中国大陆）；海外用 `https://service.vidu.com` |
 | `VIDU_DEBUG` | 否 | 设为 `1` 可打印完整响应体到 stderr |
 
+### 获取 Vidu API Token
+
+中国大陆 —— 访问 [vidu.cn](https://www.vidu.cn)，登录后点击左下角头像打开账户菜单，选择 **Vidu Token**：
+
+![在中国大陆 vidu.cn 获取 Vidu Token](./assets/vidu-token-cn.png)
+
+海外 —— 访问 [vidu.com](https://www.vidu.com)，登录后点击左侧边栏头像打开账户菜单，选择 **Vidu Token**：
+
+![在海外 vidu.com 获取 Vidu Token](./assets/vidu-token-global.png)
+
 ## 数据使用与隐私
 
 本 Skill 会把用户提供的数据发送到 Vidu 服务器：
@@ -148,5 +158,6 @@ TTS 字幕：单段 `--prompt` 模式默认启用字幕输出。使用 `--subtit
 
 ## 链接
 
-- 官网：https://www.vidu.cn/
+- 官网（中国大陆）：https://www.vidu.cn/
+- 官网（海外）：https://www.vidu.com/
 - npm：https://www.npmjs.com/package/vidu-cli

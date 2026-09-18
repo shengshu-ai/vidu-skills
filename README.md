@@ -48,6 +48,16 @@ npm install -g vidu-cli@latest
 | `VIDU_BASE_URL` | No | Default `https://service.vidu.cn` (mainland China); use `https://service.vidu.com` for overseas |
 | `VIDU_DEBUG` | No | Set to `1` to print full response body to stderr |
 
+### Get your Vidu API Token
+
+Mainland China — visit [vidu.cn](https://www.vidu.cn), log in, open the account menu from the avatar in the lower-left corner, then click **Vidu Token**:
+
+![Get your Vidu Token on vidu.cn](./assets/vidu-token-cn.png)
+
+Overseas — visit [vidu.com](https://www.vidu.com), log in, open the account menu from the avatar in the left sidebar, then click **Vidu Token**:
+
+![Get your Vidu Token on vidu.com](./assets/vidu-token-global.png)
+
 ## Data Usage and Privacy
 
 This skill sends user-provided data to Vidu's servers:
@@ -148,5 +158,6 @@ Terminal states are `success`, `failed`, and `canceled`. Keep polling for all ot
 
 ## Links
 
-- Homepage: https://www.vidu.cn/
+- Homepage (mainland China): https://www.vidu.cn/
+- Homepage (overseas): https://www.vidu.com/
 - npm: https://www.npmjs.com/package/vidu-cli
