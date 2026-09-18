@@ -44,7 +44,7 @@ npm install -g vidu-cli@latest
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VIDU_TOKEN` | Yes | Vidu API token |
+| `VIDU_TOKEN` | Yes | Vidu API token — obtain it at [vidu.cn](https://www.vidu.cn) (mainland China) or [vidu.com](https://www.vidu.com) (overseas); see [Get your Vidu API Token](#get-your-vidu-api-token) |
 | `VIDU_BASE_URL` | No | Default `https://service.vidu.cn` (mainland China); use `https://service.vidu.com` for overseas |
 | `VIDU_DEBUG` | No | Set to `1` to print full response body to stderr |
 
