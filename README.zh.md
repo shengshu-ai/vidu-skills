@@ -44,7 +44,7 @@ npm install -g vidu-cli@latest
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `VIDU_TOKEN` | 是 | Vidu API Token |
+| `VIDU_TOKEN` | 是 | Vidu API Token —— 在 [vidu.cn](https://www.vidu.cn)（中国大陆）或 [vidu.com](https://www.vidu.com)（海外）获取，详见[获取 Vidu API Token](#获取-vidu-api-token) |
 | `VIDU_BASE_URL` | 否 | 默认 `https://service.vidu.cn`（中国大陆）；海外用 `https://service.vidu.com` |
 | `VIDU_DEBUG` | 否 | 设为 `1` 可打印完整响应体到 stderr |
 
