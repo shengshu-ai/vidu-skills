@@ -1,6 +1,6 @@
 # Video Compose Reference
 
-Compose a multi-track timeline into a single exported video.
+Compose a multi-track timeline into a single exported video using `vidu-cli v0.2.36+`. This reference retains the timeline schema; task delivery is described in [task workflows](task_workflows.md).
 
 ---
 
@@ -13,24 +13,28 @@ vidu-cli task compose \
   --timeline <file_path_or_json_string> \
   [--width 1920] \
   [--height 1080] \
-  [--schedule-mode <mode>]
+  [--schedule-mode <mode>] \
+  [--wait [--timeout 1800] [--output ./results]]
 ```
 
-All output flags are optional. If omitted, the server decides.
+Output width/height are optional; the server decides when omitted. The separate `--output` download path requires `--wait` on a compose submission, as does `--timeout`.
 
 `--timeline` accepts either a JSON file path or an inline JSON string. The CLI auto-detects: if the argument starts with `{` or `[`, it is treated as inline JSON; otherwise as a file path. When using inline JSON in shell, wrap in single quotes to prevent shell interpretation: `--timeline '{"video_tracks":[...]}'`.
 
-`--schedule-mode`: `claw_pass` (use daily quota) or `normal` (use credits). Optional — if omitted, auto-detected by querying claw-pass status: uses `claw_pass` when user has an active pass, otherwise `normal`.
+`--schedule-mode`: `nopeak` = off-peak mode (闲时模式), `claw_pass` = pass mode (通行证模式), `normal` = credit mode (积分模式). Off-peak eligibility, remaining quota, and task/model restrictions are server-validated. If omitted, an active pass selects `claw_pass`, otherwise `normal`; off-peak is not automatically selected. Do not automatically switch billing after rejection. See [parameters](parameters.md#schedule-modes).
 
-Returns: `{"ok": true, "task_id": "...", "trace_id": "..."}`
+Without `--wait`, returns `ok: true` with `task_id` and `trace_id` when available. Save the task ID. With `--wait`, progress goes to stderr and the final task result goes to stdout.
 
 ### Query compose job
 
 ```bash
-vidu-cli task get <task_id>
+vidu-cli task get "$TASK_ID"
+vidu-cli task wait "$TASK_ID" --timeout 1800 --output ./results
 ```
 
-Uses the `task_id` returned by `task compose`. Same as querying any other task.
+Set `TASK_ID` from the compose response. `get` queries once; `wait` polls until a terminal state (default timeout 1800s, poll interval 5s), optionally downloading media. Timeout/interruption only stops local waiting; continue with the same task ID rather than submitting another compose job. See [errors and retry](errors_and_retry.md).
+
+For a single requested export, use `vidu-cli task compose --timeline ./timeline.json --wait --output ./results`. JSON here is the CLI's timeline input, not a raw API request body.
 
 ---
 

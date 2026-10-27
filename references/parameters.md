@@ -1,884 +1,249 @@
-# Vidu Task Parameters Reference
+# Vidu Generation Parameters
 
-Daily use: **`vidu-cli`** flags and the sections below.
+Aligned with `vidu-cli v0.2.36`. Use this reference for `task submit`, TTS, lip-sync, schedule modes, quotes, and quota. For lifecycle, downloads, and post-processing, read [task workflows](task_workflows.md); for reusable elements, read [assets](assets.md).
 
----
+## Contents
 
-## Task Support Matrix
+- [Task and model matrix](#task-and-model-matrix)
+- [Reference inputs](#reference-inputs)
+- [Submit options and examples](#submit-options-and-examples)
+- [Schedule modes](#schedule-modes)
+- [Text-to-speech and lip-sync](#text-to-speech-and-lip-sync)
+- [Quotes and quota](#quotes-and-quota)
 
-| Task Type | CLI Command | Model Version | Duration | Resolution | Aspect Ratio | Transition | Images |
-|-----------|----------|---------------|----------|------------|--------------|------------|--------|
-| text2image | `text2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | 0 |
-| text2video | `text2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: 4–15s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: pro/speed | 0 |
-| img2video | `img2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: 4–15s | 1080p | from image (do not pass) | 3.0: creative/stable; 3.1/3.2: **pro/speed (required)**; 3.2_a: optional pro/speed | exactly 1 |
-| headtailimg2video | `headtailimg2video` | 3.0, 3.1, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.2: 1–16s; 3.2_a: 4–15s | 1080p | N/A | 3.0: creative/stable; 3.1/3.2: **pro/speed (required)**; 3.2_a: optional pro/speed | exactly 2 |
-| reference2image | `reference2image` | 3.1, 3.2_fast_m, 3.2_pro_m, 3.2_image_2 | 0 | 1080p, 2k, 4k | 4:3, 3:4, 1:1, 9:16, 16:9 | N/A | images + materials: 1–7 |
-| character2video | `character2video` | 3.0, 3.1, 3.1_pro, 3.2, 3.2_a | 3.0: 5s; 3.1: 2–8s; 3.1_pro: -1/2–8s; 3.2: 1–16s; 3.2_a: 4–15s | 1080p | 16:9, 9:16, 1:1, 4:3, 3:4 | 3.2: **pro/speed (required)**; 3.2_a: do not pass | images + materials: 1–7; 3.2_a also supports `--audio` (≤3, wav/mp3, ≤15MB each, each 2–15s, total ≤15s) and `--video` (mp4/mov; max 3; local files: ≤50MB each, aspect ratio 0.4–2.5, w/h 300–60000, total pixels 409600–2086876, total duration ≤15s) |
-| lip_sync | `task lip-sync` | N/A | auto (from text/audio) | 1080p | from video | N/A | 1 video + (text OR audio) |
-| tts | `task tts` | N/A | auto (from text) | N/A | N/A | N/A | text + voice-id |
+## Task and Model Matrix
 
-**Capability notes**
+`--model-version` (alias `--model`) is required. `--type` accepts six canonical types: `text2image`, `reference2image`, `text2video`, `img2video`, `headtailimg2video`, `character2video`. `img2image` is an alias for `reference2image` on submit and cost commands. TTS, lip-sync, compose, extension, and upscaling have their own subcommands.
 
-- **text-to-image**: Text only.
-- **text-to-video**: Text only.
-- **image-to-video**: One image + text; aspect ratio comes from the image.
-- **head-tail-image-to-video**: Two images (start, end) + text.
-- **reference2image** and **character2video** — same input rule: **image count + material count must be ≥ 1 and ≤ 7** (each `--image` and each `--material` counts toward the total). **Text prompt (`--prompt` or `--prompt-path`) is required** for both (cannot omit or leave empty).
-- **lip-sync**: Drive video mouth movement with text-to-speech or audio file. Two modes: **text mode** (TTS with voice selection) or **audio mode** (custom audio file). Video: MP4/MOV/AVI, ≤500MB. Audio: MP3/WAV/AAC/M4A, ≤100MB.
-- **TTS**: Convert text to speech audio. Uses `task tts` command (not `task submit`). Requires `--voice-id` and one of `--prompt`, `--prompt-path`, or `--text`. `--prompt` / `--prompt-path` are for single-segment input; `--text` is for multi-segment input. List voices with `task tts-voices`.
-- **When is `element create` needed?** `element create` saves a reference for **future reuse** across multiple tasks. It is **not required** for one-off generation — just pass `--image` directly. Use `--material` (with `[@name]` in prompt) only when referencing a **previously saved** or **community** element. You may combine `--image` and `--material` as long as the total stays in 1–7.
-- **Create References**: `vidu-cli element create --name ... --image ...` runs check → preprocess → create; returns element `id` and `version`.
-- **List personal references**: `vidu-cli element list [--keyword kw]`.
-- **Search community references**: `vidu-cli element search --keyword "..."`.
+| Model version | Supported submit types | Output duration | Resolution |
+|---|---|---|---|
+| `3.1`, `3.2_fast_m`, `3.2_pro_m`, `3.2_image_2`, `3.2_image_2_5_fast`, `3.2_image_2_5_pro` | `text2image`, `reference2image` | Not needed; normalized to 0 | 1080p, 2k, 4k |
+| `3.0` | All four video types | 5s | 1080p |
+| `3.1` | All four video types | 2–8s | 1080p |
+| `3.1_pro` | `character2video` only | -1 (auto) or 2–8s | 1080p |
+| `3.2` | All four video types | 1–16s | 1080p |
+| `3.2_a` | All four video types | 4–15s, explicit; no -1 | 720p, 1080p |
+| `3.4` (Q4) | `img2video` | 3–16s | 540p, 720p, 1080p, 2k, 4k |
+| `3.4` (Q4) | `character2video` | 1–16s | 540p, 720p, 1080p, 2k, 4k |
+| `viduq3.1-drama-std` (Q3.1 Drama) | `text2video`, `character2video` | 4–30s, default 5s | 480p, **720p default**, 1080p |
+| `viduq2-drama-std` (Wan 3) | All four video types | 2–30s, default 5s | 480p, **720p default**, 1080p |
 
----
+The four video types are `text2video`, `img2video`, `headtailimg2video`, and `character2video`. Q4 does not support text-to-video or head/tail submission; Drama does not support image-to-video or head/tail submission. Use their supported reference workflow instead.
 
-## CLI commands (overview)
+Defaults for **submit**:
 
-### Command map
+- Drama/Wan 3 default to 5 seconds, 720p, 16:9; these options can be omitted.
+- Other video models, including Q4, require an explicit duration and resolution. If the user has no resolution preference, keep the established 1080p choice when supported.
+- Image models require resolution; duration may be omitted and is normalized to 0 by the CLI.
 
-| Command | Purpose |
-|---------|---------|
-| `vidu-cli upload <image_path>` | Upload image and return `upload_id`, `ssupload_uri`. Usually optional because image flags auto-upload. |
-| `vidu-cli task submit --type ... [--prompt TEXT \| --prompt-path PATH] [options]` | Submit image/video generation and return `task_id`, `trace_id`. |
-| `vidu-cli task get <task_id> [--output/-o <dir>]` | Query task state; use `--output` to download successful media and subtitle JSON when present. |
-| `vidu-cli task compose --timeline <json-or-file> [--width N --height N] [--schedule-mode <mode>]` | Compose a video timeline. Read `compose.md` before building the timeline schema. |
-| `vidu-cli task lip-sync --video <path> --text <text> [options]` | Lip-sync with text-to-speech voice selection. |
-| `vidu-cli task lip-sync --video <path> --audio <path>` | Lip-sync with a custom audio file. |
-| `vidu-cli task lip-sync-voices` | List available voice IDs (same pool as tts-voices). |
-| `vidu-cli task tts [--prompt TEXT \| --prompt-path PATH \| --text TEXT] --voice-id ...` | Text-to-speech; returns `task_id`. |
-| `vidu-cli task tts-voices` | List available voice IDs (same pool as lip-sync-voices). |
-| `vidu-cli task cost --type ... --model-version ... --duration ...` | Estimate video/image task credit cost. |
-| `vidu-cli task tts-cost --text ... --voice-id ...` | Estimate TTS credit cost. |
-| `vidu-cli task lip-sync-cost --duration ... [--voice-id ...]` | Estimate lip-sync credit cost. |
-| `vidu-cli quota pass` | Query claw-pass daily quota status. |
-| `vidu-cli quota credit` | Query credit balance. |
-| `vidu-cli element check --name ...` | Check reference element name availability. |
-| `vidu-cli element create --name ... --image ... [--description ...] [--style ...]` | Create a reusable reference element. |
-| `vidu-cli element list [--keyword kw]` | List personal reference elements. |
-| `vidu-cli element search --keyword kw` | Search community reference elements. |
+### Aspect Ratio and Transition
 
-### Upload image
+The common aspect ratios are `16:9`, `9:16`, `1:1`, `4:3`, `3:4`. For legacy `img2video` / `headtailimg2video`, derive the format from the images and omit aspect ratio. Wan 3 additionally accepts `21:9` and `adaptive`, including image and head/tail modes; its default is 16:9.
 
-```bash
-vidu-cli upload <image_path>
-```
+| Task/model | `--transition` |
+|---|---|
+| `img2video` / `headtailimg2video` + `3.0` | Optional `creative` / `stable` |
+| `img2video` / `headtailimg2video` + `3.1` / `3.2` | **Required** `pro` / `speed` |
+| `img2video` / `headtailimg2video` + `3.2_a` | Optional `pro` / `speed` |
+| `text2video` + `3.2` | Optional `pro` / `speed` |
+| `character2video` + `3.2` | **Required** `pro` / `speed` |
+| Other combinations, including Q4, Drama, Wan 3 and images | Omit |
 
-- Detects dimensions; compresses if larger than 10MB.
-- Returns: `upload_id`, `ssupload_uri`.
+Established model nicknames: Q1 = `3.0`, Q2 = `3.1`, Q2 Pro = `3.1_pro`, Q3 = `3.2`, Q3-A / Omni Video Pro / 全能Video Pro = `3.2_a`, 全能Q3 Fast/Pro = `3.2_fast_m` / `3.2_pro_m`, 全能Image 2 = `3.2_image_2`. Preserve a user's explicit selection; new models do not replace it automatically.
 
-### Submit task
+## Reference Inputs
 
-```bash
-vidu-cli task submit \
-  --type <task_type> \
-  --prompt "text prompt" \
-  [--image <path|url|ssupload_uri>] \
-  [--material "name:id:version"] \
-  [--audio <path|ssupload_uri>] \
-  [--video <path|ssupload_uri>] \
-  [--duration <seconds>] \
-  --model-version <version> \
-  [--aspect-ratio <ratio>] \
-  [--transition <mode>] \
-  --resolution <res> \
-  [--sample-count <n>] \
-  [--codec <codec>] \
-  [--movement-amplitude <amp>] \
-  [--schedule-mode <mode>]
-```
+Provide a nonempty text prompt with reference generation. Use one flag per input. Materials use `--material "NAME:ELEMENT_ID:VERSION"`; an optional `[@NAME]` in the prompt identifies that character. Obtain IDs/versions from `element create/get/list/search/favorites`; see [assets](assets.md). Creating an element is useful for reuse, not required for a one-off image input.
 
-`--image` and `--material` may be repeated where applicable. `--audio` may be repeated (character2video + 3.2_a only, max 3). `--video` may be repeated (character2video + 3.2_a only, max 3, total local video duration ≤ 15s).
+| Task/model | Images/materials | Audio | Video |
+|---|---|---|---|
+| `text2image` / `text2video` | Text only | None | None |
+| `img2video` | Exactly 1 image | None | None |
+| `headtailimg2video` | Exactly 2 images, head then tail | None | None |
+| `reference2image` | 1–7 images + materials total | None | None |
+| Legacy `character2video` | Use 1–7 images + materials for image/material reference workflows | `3.2_a` only: max 3 | `3.2_a` only: max 3 |
+| Q4 `character2video` | Max 7 images + materials; may omit when audio is supplied | Max 3; audio-only references supported | None |
+| Drama `character2video` | Max 9 images; no materials | Max 10 | Max 3 |
+| Wan 3 `character2video` | Max 10 images; no materials | Max 5 | Max 5 |
 
-### Smart input handling
+Drama and Wan 3 require at least one image, video, or audio reference. Wan 3 allows at most 20 media inputs total. Do not reuse the legacy image/material minimum for Q4 audio-only, Drama, or Wan 3. Wan 3 image/head-tail modes cannot mix in audio or video references. Drama `text2video` accepts text only; the reference workflow is `character2video`.
 
-`--image` (`task submit`, `element create`):
+### Paths, URLs, and Uploads
 
-- Local path: auto-uploaded; images larger than 10MB are compressed before upload.
-- HTTP/HTTPS URL: downloaded by the CLI, then uploaded.
-- `ssupload:?id=...`: passed through as an existing upload reference.
+- `--image` accepts a local path, HTTP/HTTPS URL (downloaded then uploaded), or existing `ssupload:?id=...`. Local images are auto-uploaded; the shared uploader compresses images over 10 MiB.
+- Reference `--audio` and `--video` accept local files or existing `ssupload:?id=...`; **HTTP/HTTPS reference audio/video URLs are rejected**. Video upscale and compose have different URL rules; see their references.
+- `vidu-cli upload ./photo.jpg` uploads a local image and returns `upload_id` and `ssupload_uri`. It is not a general video/audio upload command.
+- Local reference media is checked before image uploads. Existing uploads pass through; the server checks metadata and full collections, including mixed local/uploaded inputs. Do not claim local validation proves server acceptance.
+- v0.2.36 reads and uploads reference video dimensions/duration automatically, including its HEVC track-dimension fallback. No manual metadata flags are needed. If metadata cannot be read, report the CLI's actual corrective suggestion.
 
-`--video` and `--audio` (`task submit`, `character2video` with `3.2_a` only):
+### Local Reference Audio Limits
 
-- Local path: auto-uploaded.
-- `ssupload:?id=...`: passed through as an existing upload reference.
-- HTTP/HTTPS URL: not supported and rejected by validation.
+All reference audio files are WAV/MP3, at most 15 MiB each.
 
-### `--material` (CRITICAL: repeat the flag for each character)
+| Model | Duration per audio | Total audio duration |
+|---|---|---|
+| `3.2_a` | 2–15s | ≤15s |
+| Q4 | 1–16s | No legacy 15s total limit; max 3 clips |
+| Drama, without reference video | 4–30s | ≤30s |
+| Drama, with any reference video | 2–30s | ≤30s |
+| Wan 3 | 1–15s | ≤15s |
 
-Use exactly one `--material` flag per saved element. Do not combine multiple elements inside one string.
+With Drama video references, the server determines the task type and still requires ≥4s audio for non-edit tasks. The CLI exposes no explicit Drama edit/extend selector. Do not infer acceptance of 2–4s audio merely from local preflight passing.
 
-**CORRECT (multiple characters)**
+### Local Reference Video Limits
 
-```bash
---material "王总:3301792115986812:1779362202" \
---material "林小白:3301791869364813:1779362187" \
---material "张经理:3301746243845326:1779359403"
-```
+| Model | File / dimensions | Duration / frame rate |
+|---|---|---|
+| `3.2_a` | MP4/MOV, ≤50 MiB; each side 300–60000px, ratio 0.4–2.5, total pixels 409600–2086876 | Total ≤15s |
+| Drama | Same format, size, and geometry as `3.2_a` | Each 4–30s, total ≤30s; average 24–60 fps |
+| Wan 3 | MP4/MOV, ≤100 MiB; sides 240–4096px, ratio 1:8–8:1 | Each 1–15s, total ≤15s; average ≥16 fps; input video total + output duration ≤30s |
 
-**WRONG (will fail or bind references incorrectly)**
+Wan 3 local images must be JPEG/PNG/BMP/WEBP, nonempty and ≤20 MiB, with sides 240–8000px and ratio 1:8–8:1. Limits apply to source files even when the shared uploader later compresses them. Existing `ssupload` metadata is validated by the server.
+
+## Submit Options and Examples
+
+| Option | Behavior |
+|---|---|
+| `--prompt TEXT` | Inline prompt; takes precedence over a supplied prompt file. |
+| `--prompt-path PATH` / `--prompt-file PATH` | UTF-8 file ≤1 MiB; one trailing newline is removed. Supported by submit, TTS, and rerun. |
+| `--sample-count N` | Default 1; positive integer. Wan 3 supports 1–4. |
+| `--codec h264\|h265` | Default h265; submit may fall back to h264 when ffprobe is unavailable. |
+| `--movement-amplitude VALUE` | Default `auto`. |
+| `--with-audio` | Enable generated output audio on supported video models. |
+| `--with-audio=false` | Disable generated output audio. The false value uses `=`. |
+| `--schedule-mode MODE` | See the mode table below; `auto` means omit the flag, not a valid value. |
+| `--wait [--timeout SECONDS] [--output PATH]` | Wait for a terminal state and optionally download; see [task workflows](task_workflows.md). |
+
+`--with-audio` is exposed on submit, cost, and rerun. `--audio` only supplies reference audio and does not automatically enable output audio. Omitting the output switch preserves existing behavior; actual model capability and price come from the server. Image tasks reject the output audio switch. Rerun preserves the historical audio choice unless overridden; `--with-audio=false` also clears historical lip-sync settings.
 
 ```bash
---material "王总:3301792115986812:1779362202,林小白:3301791869364813:1779362187"
---material "王总:3301792115986812:1779362202 林小白:3301791869364813:1779362187"
+# Existing video model, with its required settings.
+vidu-cli task submit --type text2video --prompt "A cat walking in rain" \
+  --model-version 3.2 --duration 5 --resolution 1080p --wait --output ./results
+
+# Image-to-video: transition and resolution are explicit for 3.2.
+vidu-cli task submit --type img2video --prompt "Slow camera push-in" \
+  --image ./scene.jpg --model-version 3.2 --duration 5 --resolution 1080p \
+  --transition pro --wait --output ./results
+
+# Head/tail ordering matters.
+vidu-cli task submit --type headtailimg2video --prompt "A smooth transition" \
+  --image ./start.jpg --image ./end.jpg --model-version 3.2 \
+  --duration 5 --resolution 1080p --transition pro --wait --output ./results
+
+# New image models support both text2image and reference2image.
+vidu-cli task submit --type text2image --prompt "A poster with clear lettering" \
+  --model-version 3.2_image_2_5_pro --resolution 2k --wait --output ./images
+vidu-cli task submit --type reference2image --prompt "Keep the subject, change the background" \
+  --image ./subject.jpg --model-version 3.2_image_2_5_fast --resolution 1080p
+
+# Q4 audio-only reference: a local 1–16s WAV/MP3 clip.
+vidu-cli task submit --type character2video --prompt "A scene inspired by the sound" \
+  --model-version 3.4 --audio ./reference.wav --duration 5 --resolution 1080p
+
+# Drama audio-only reference: a local 4–30s WAV/MP3 clip.
+vidu-cli task submit --type character2video --prompt "A dramatic scene with dialogue" \
+  --model-version viduq3.1-drama-std --audio ./dialogue.wav --wait --output ./results
+
+# Wan 3 text-to-video with generated sound, using its 5s/720p/16:9 defaults.
+vidu-cli task submit --type text2video --prompt "Waves breaking on a beach" \
+  --model-version viduq2-drama-std --with-audio --wait --output ./results
+
+# Wan 3 multimodal references; input video total + output must fit within 30s.
+vidu-cli task submit --type character2video --prompt "Follow the subject, camera and soundtrack" \
+  --model-version viduq2-drama-std --image ./subject.jpg \
+  --video ./reference.mp4 --audio ./soundtrack.wav --with-audio
 ```
 
-### Query task
+Use one `--material "NAME:ELEMENT_ID:VERSION"` per element for models that accept materials. Do not comma-join or space-join multiple materials into one value. CLI-managed enhance/recaption fields do not require invented submit flags.
 
-```bash
-vidu-cli task get <task_id> [--output/-o <dir>]
-```
+## Schedule Modes
 
-Returns: `task_id`, `state`, `type`, `model`; on failed: `err_code`, `err_msg`. **Note**: `ok` may be `true` even when `state` is `failed` — always check `state` to determine success.
+| Value | Meaning | Selection |
+|---|---|---|
+| `nopeak` | Off-peak mode (**闲时模式**) | Explicit selection; server validates eligibility, remaining quota, and task/model restrictions. |
+| `claw_pass` | Pass mode (**通行证模式**) | Uses pass quota. |
+| `normal` | Credit mode (**积分模式**) | Uses credits. |
 
-`--output <dir>` (optional): when state is `success`, downloads all media files to `<dir>` and returns `downloaded_files` (list of local paths). For TTS tasks, when `subtitle_uri` is present, it downloads both generated audio and subtitle JSON. If state is not `success`, returns `download_skipped: "task not ready"`.
+Q4 defaults to `normal`, allows `nopeak` subject to server rules, and rejects `claw_pass`. Drama and Wan 3 default to and only accept `normal`. Other generation models, TTS, lip-sync, and compose auto-detect an active pass when the flag is omitted; otherwise they use `normal`. They do not automatically choose `nopeak`. Video upscale has fixed `normal` billing and no schedule flag.
 
-### Search community references
+Do not automatically change the user's mode after a quota or eligibility rejection. `ClawPassExplicitModeRequired` is a submit error: explain the exhausted pass quota and the alternatives; use credit mode only when authorized. `quota pass` reports pass quota, not off-peak quota.
 
-```bash
-vidu-cli element search --keyword "keyword" [--pagesz 20]
-```
+## Text-to-Speech and Lip-Sync
 
-### Query claw-pass status
+### TTS
 
-```bash
-vidu-cli quota pass
-```
+Use `task tts`, not `task submit --type tts`. List official voices with `task tts-voices`; `task lip-sync-voices` returns the same official pool. Select an exact returned ID. Personal voices come from `voice list` / `voice create`; read [voices](voices.md).
 
-Returns: `has_pass` (bool), `daily_quota_seconds`, `used_seconds`, `remain_seconds`, `package_id`, `tier`.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `has_pass` | boolean | Whether the user has an active claw-pass |
-| `package_id` | string | Package identifier |
-| `tier` | string | Subscription tier |
-| `daily_quota_seconds` | integer | Total daily quota in seconds |
-| `used_seconds` | integer | Seconds consumed today |
-| `remain_seconds` | integer | Remaining seconds today |
-| `cycle_start_at` | datetime | Billing cycle start time |
-| `cycle_end_at` | datetime | Billing cycle end time |
-| `next_refresh_at` | datetime | Next quota refresh time |
-| `refresh_timezone` | string | Refresh timezone (e.g. "Asia/Shanghai") |
-
-### Query credit balance
-
-```bash
-vidu-cli quota credit
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `credits` | integer | Current available credits |
-| `credits_expire_today` | integer | Credits expiring today |
-| `credits_expire_monthly` | integer | Credits expiring this month |
-| `credits_permanent` | integer | Permanent (non-expiring) credits |
-| `concurrency` | integer | Concurrent task limit |
-| `credits_free` | integer | Free credits |
-| `credits_subscribed` | integer | Credits from subscription |
-| `credits_purchased` | integer | Purchased credits |
-| `credit_sub_expires_at` | string (datetime) | Subscription expiration time |
-
----
-
-## Task types (`--type`)
-
-| Value | Meaning |
-|-------|---------|
-| `text2image` | Text to image |
-| `text2video` | Text to video |
-| `img2video` | Image to video |
-| `headtailimg2video` | Head and tail frames to video |
-| `reference2image` | Reference to image |
-| `character2video` | Reference to video |
-
-**Note**: `lip_sync` uses a different command: `vidu-cli task lip-sync` (not `task submit --type lip_sync`).
-
----
-
-## CLI settings (`task submit`)
-
-### `--model-version` (alias `--model`) (required)
-
-| Value | Maps to | Notes |
-|-------|---------|-------|
-| `3.0` | Q1 | |
-| `3.1` | Q2 | text2image, reference2image, 2–8s video models |
-| `3.2` | Q3 | 1–16s video models |
-| `3.2_a` | Q3-A | text2video, img2video, headtailimg2video, character2video; duration 4–15s; supports `--audio` for character2video **only** (invalid for all other model versions and task types); supports `--video` for character2video **only** (max 3; local file constraints: mp4/mov, ≤50MB, aspect ratio 0.4–2.5, w/h 300–60000, total pixels 409600–2086876, total duration ≤15s) |
-| `3.1_pro` | Q2 pro | `character2video` only |
-| `3.2_fast_m` | Q3 fast | text2image / reference2image only |
-| `3.2_pro_m` | Q3 pro | text2image / reference2image only |
-| `3.2_image_2` | 全能Image 2 (GPT-Image 2) | text2image / reference2image only; multimodal visual generation model with strong text rendering accuracy, suitable for commercial design needs including marketing posters, product promotion, UI/web interfaces, data infographics, and IP character series images |
-
-**Model nicknames / aliases**
-
-- Q1: `3.0`
-- Q2: `3.1`
-- Q2 Pro: `3.1_pro`
-- Q3: `3.2`
-- Q3-A / Omni Video Pro / 全能Video Pro: `3.2_a`
-- 全能Q3 Fast: `3.2_fast_m`
-- 全能Q3 Pro: `3.2_pro_m`
-- 全能Image 2 / GPT-Image 2: `3.2_image_2`
-
-### `--duration`
-
-- **text2image**, **reference2image**: optional (image tasks have no duration; if passed, must be `0`)
-- **text2video**, **img2video**, **headtailimg2video**, **character2video**: valid ranges depend on `model_version` (see matrix above; e.g. 3.1 often 2–8s, 3.2 often 1–16s)
-- **3.2_a** (all supported video types): `4–15` (inclusive). Any other value causes a validation error.
-
-### `--resolution` (required; default choice 1080p)
-
-- **text2image**: `1080p`, `2k`, `4k`
-- **reference2image**: `1080p`, `2k`, `4k`
-- **Video tasks**: `1080p` only
-- If the user does not request a specific supported resolution, pass `--resolution 1080p`.
-
-### `--aspect-ratio` (optional; task-dependent)
-
-- **text2image**, **reference2image**: `4:3`, `3:4`, `1:1`, `9:16`, `16:9`
-- **text2video**, **character2video**: `16:9`, `9:16`, `1:1`, `4:3`, `3:4`
-- **img2video**: do not pass (derived from image)
-- **headtailimg2video**: do not pass
-
-### `--transition` (optional; video, but required for some model/task pairs)
-
-- **text2video** (3.2 only): `pro`, `speed`
-- **text2video** (3.1): do not pass
-- **img2video** (3.1, 3.2): `pro`, `speed` (**required**; omitting causes a validation error)
-- **headtailimg2video** (3.1, 3.2): `pro`, `speed` (**required**; omitting causes a validation error)
-- **img2video**, **headtailimg2video** (3.0): `creative`, `stable`
-- **img2video**, **headtailimg2video** (3.2_a): `pro`, `speed` (optional)
-- **character2video** (3.2): `pro`, `speed` (**required** for model version 3.2; omitting causes a validation error)
-- **character2video** (3.2_a): do not pass
-- **character2video** (3.0, 3.1, 3.1_pro): do not pass
-- **reference2image**, **text2image**: do not pass
-
-### Other flags (when supported by CLI)
-
-- `sample_count` / `--sample-count`: default 1
-- `schedule_mode` / `--schedule-mode`: `claw_pass` (daily quota) or `normal` (credits). Optional — if omitted, auto-detected by querying claw-pass status: uses `claw_pass` when user has an active pass, otherwise `normal`.
-- `codec` / `--codec`: default `h265`
-- `use_trial`: if exposed by CLI
-- `movement_amplitude` / `--movement-amplitude`: e.g. `auto`
-
----
-
-## CLI vs raw JSON (background)
-
-Use **`vidu-cli` flags only** — do not hand-craft request bodies or invent extra parameters.
-
-| CLI | Role |
-|-----|------|
-| `--prompt` | Inline text prompt (respect length limits, e.g. up to 4096 chars). Use `--prompt-path <path>` to load the prompt from a file instead. When both flags are passed, `--prompt` wins. |
-| `--prompt-path` | Read the prompt from a UTF-8 file (≤1MiB; one trailing newline is stripped). Available wherever `--prompt` is documented (`task submit`, `task tts`). |
-| `--image` | Images (paths, URLs, or `ssupload` URIs after upload) |
-| `--material` | Reference material ids |
-| `input.enhance` / recaption | **No CLI flag** — handled internally by `vidu-cli` (do not invent a flag). |
-
----
-
-### Prompt input formats
-
-Wherever `--prompt` is supported, you can pass the prompt as inline text or as a file:
-
-- **Inline text** — `--prompt "A cat walks in the snow"`
-- **From a file** — `--prompt-path prompts/scene.txt`
-
-`--prompt-path` requires a UTF-8 file ≤1 MiB; one trailing newline is stripped. When both `--prompt` and `--prompt-path` are passed, `--prompt` wins (no warning is emitted). On `task tts`, `--prompt-path` is mutually exclusive with `--text`.
-
-```bash
-echo 'A neon-lit alley after the rain' > prompts/alley.txt
-vidu-cli task submit \
-  --type text2video \
-  --prompt-path prompts/alley.txt \
-  --duration 5 \
-  --model-version 3.2 \
-  --resolution 1080p
-```
-
----
-
-## CLI examples
-
-### 1. text-to-video
-
-```bash
-vidu-cli task submit \
-  --type text2video \
-  --prompt "A cat walks in the snow at sunset" \
-  --duration 5 \
-  --model-version 3.2 \
-  --aspect-ratio 16:9 \
-  --transition pro \
-  --resolution 1080p
-```
-
-Response: `{"ok": true, "task_id": "...", "trace_id": "..."}`
-
-**With 3.2_a model**:
-
-```bash
-vidu-cli task submit \
-  --type text2video \
-  --prompt "A cat walks in the snow at sunset" \
-  --duration 5 \
-  --model-version 3.2_a \
-  --aspect-ratio 9:16 \
-  --resolution 1080p
-```
-### 2. text-to-image
-
-```bash
-vidu-cli task submit \
-  --type text2image \
-  --prompt "A beautiful sunset over the ocean" \
-  --model-version 3.2_image_2 \
-  --resolution 2k
-```
-
-### 3. image-to-video
-
-```bash
-vidu-cli task submit \
-  --type img2video \
-  --prompt "The cat starts running" \
-  --image /path/to/image.jpg \
-  --duration 5 \
-  --model-version 3.2 \
-  --resolution 1080p
-```
-
-`--image` accepts local path, URL, or `ssupload:?id=...`.
-
-**With 3.2_a model**:
-
-```bash
-vidu-cli task submit \
-  --type img2video \
-  --prompt "The cat starts running" \
-  --image /path/to/image.jpg \
-  --duration 5 \
-  --model-version 3.2_a \
-  --resolution 1080p
-```
-
-### 4. head-tail-image-to-video
-
-```bash
-vidu-cli task submit \
-  --type headtailimg2video \
-  --prompt "Smooth transition between scenes" \
-  --image /path/to/start.jpg \
-  --image /path/to/end.jpg \
-  --duration 5 \
-  --model-version 3.2 \
-  --resolution 1080p
-```
-
-**With 3.2_a model**:
-
-```bash
-vidu-cli task submit \
-  --type headtailimg2video \
-  --prompt "Smooth transition between scenes" \
-  --image /path/to/start.jpg \
-  --image /path/to/end.jpg \
-  --duration 5 \
-  --model-version 3.2_a \
-  --aspect-ratio 4:3 \
-  --resolution 1080p
-```
-
-### 5. reference-to-video
-
-**With a saved reference (subject)** — `[@name]` matches `--material` (count toward the 1–7 total):
-
-**character2video (single character, canonical template)**
-
-```bash
-vidu-cli task submit \
-  --type character2video \
-  --prompt "[@aliya] walks in the garden" \
-  --material "aliya:3073530415201165:1765430214" \
-  --duration 5 \
-  --model-version 3.2 \
-  --aspect-ratio 16:9 \
-  --transition pro \
-  --resolution 1080p
-```
-
-**character2video (multiple characters, canonical template)**
-
-```bash
-vidu-cli task submit \
-  --type character2video \
-  --prompt "[@王总] sits at the head of the conference table while [@林小白] presents evidence and [@张经理] reacts nervously" \
-  --material "王总:3301792115986812:1779362202" \
-  --material "林小白:3301791869364813:1779362187" \
-  --material "张经理:3301746243845326:1779359403" \
-  --duration 5 \
-  --model-version 3.1 \
-  --aspect-ratio 9:16 \
-  --resolution 1080p
-```
-
-For multiple saved characters, add one more `--material "NAME:ELEMENT_ID:VERSION"` line per character. Never comma-join materials.
-
-**With 3.2_a model — full inputs (text prompt + subject/material + image + audio)**:
-
-```bash
-vidu-cli task submit \
-  --type character2video \
-  --prompt "[@aliya] walks in the garden, wearing a red dress, sunlight filtering through the trees" \
-  --material "aliya:3073530415201165:1765430214" \
-  --image /path/to/scene_ref.jpg \
-  --audio /path/to/ref_audio.wav \
-  --audio /path/to/ref_audio2.mp3 \
-  --duration 5 \
-  --model-version 3.2_a \
-  --aspect-ratio 3:4 \
-  --resolution 1080p
-```
-
-- `--prompt`: text description of the scene (required)
-- `--material`: saved subject reference (`[@aliya]` in prompt links to it)
-- `--image`: additional scene/style reference image (local path, URL, or `ssupload:?id=...`)
-- `--audio`: reference audio files (wav/mp3, ≤15MB each, 2–15s each, max 3, total ≤15s)
-- `--duration`: explicit output duration from 4 to 15 seconds
-
-**With 3.2_a model — video as reference input**:
-
-```bash
-vidu-cli task submit \
-  --type character2video \
-  --prompt "[@aliya] dances gracefully in the studio" \
-  --material "aliya:3073530415201165:1765430214" \
-  --video /path/to/dance_ref.mp4 \
-  --duration 5 \
-  --model-version 3.2_a \
-  --aspect-ratio 16:9 \
-  --resolution 1080p
-```
-
-- `--video`: reference video (mp4/mov; local path or `ssupload:?id=...`; HTTP/HTTPS URLs not supported). Max 3. Local files: ≤50MB, aspect ratio 0.4–2.5, w/h 300–60000, total pixels 409600–2086876, total local video duration ≤15s.
-
-**Reference + extra image(s)** — mixed `--material` and `--image` (repeat either flag; combined count ≤ 7):
-
-```bash
-vidu-cli task submit \
-  --type character2video \
-  --prompt "[@aliya] walks in the garden" \
-  --material "aliya:3073530415201165:1765430214" \
-  --image /path/to/auxiliary.jpg \
-  --duration 5 \
-  --model-version 3.2 \
-  --aspect-ratio 16:9 \
-  --transition speed \
-  --resolution 1080p
-```
-
-**Images only (no subject / no `element create`)** — text + `--image`; repeat `--image` for multiple images (total with any materials ≤ 7):
-
-```bash
-vidu-cli task submit \
-  --type character2video \
-  --prompt "The character turns and walks toward the camera" \
-  --image /path/to/ref_sheet.jpg \
-  --duration 5 \
-  --model-version 3.2 \
-  --aspect-ratio 16:9 \
-  --transition pro \
-  --resolution 1080p
-```
-
-### 6. reference-to-image
-
-Same limits as **character2video**: **images + materials between 1 and 7**, **non-empty prompt text is required** (`--prompt` or `--prompt-path`).
-
-**With a saved reference:**
-
-```bash
-vidu-cli task submit \
-  --type reference2image \
-  --prompt "[@aliya] portrait in watercolor style" \
-  --material "aliya:3073530415201165:1765430214" \
-  --model-version 3.1 \
-  --aspect-ratio 16:9 \
-  --resolution 2k
-```
-
-**Reference + image(s)** — optional extra `--image` lines (combined count ≤ 7):
-
-```bash
-vidu-cli task submit \
-  --type reference2image \
-  --prompt "[@aliya] portrait in watercolor style" \
-  --material "aliya:3073530415201165:1765430214" \
-  --image /path/to/auxiliary.jpg \
-  --model-version 3.1 \
-  --aspect-ratio 16:9 \
-  --resolution 2k
-```
-
-**Images only (no subject)** — still must pass prompt text (`--prompt` or `--prompt-path`):
-
-```bash
-vidu-cli task submit \
-  --type reference2image \
-  --prompt "Portrait in watercolor style, soft lighting" \
-  --image /path/to/ref.jpg \
-  --model-version 3.1 \
-  --aspect-ratio 16:9 \
-  --resolution 2k
-```
-
-### 7. lip-sync
-
-**Text mode (TTS with voice selection)**:
-
-```bash
-vidu-cli task lip-sync \
-  --video /path/to/video.mp4 \
-  --text "Hello, welcome to Vidu!" \
-  --voice-id English_Aussie_Bloke \
-  --speed 1.0 \
-  --volume 1.0 \
-  --codec h265
-```
-
-**Audio mode (custom audio file)**:
-
-```bash
-vidu-cli task lip-sync \
-  --video /path/to/video.mp4 \
-  --audio /path/to/audio.mp3 \
-  --codec h265
-```
-
-**Constraints**:
-- Video: MP4/MOV/AVI, ≤500MB
-- Audio: MP3/WAV/AAC/M4A, ≤100MB
-- Text: Chinese 2–1000 chars, English 4–2000 chars
-- `--text` and `--audio` are mutually exclusive (use one or the other)
-- `--speed`: 0.5–2.0 (default 1.0, text mode only)
-- `--volume`: 0.1–2.0, or 0 for server default (text mode only)
-- `--voice-id` (alias `--voice`): default `English_Aussie_Bloke` (250+ voices available).
-- `--schedule-mode`: `claw_pass` (use daily quota) or `normal` (use credits). Optional — auto-detected from claw-pass status if omitted.
-- Duration is auto-calculated from text length or audio file
-
-**Available voice IDs**: 250+ voices across Chinese, English, Japanese, Korean, Spanish, Portuguese, and more. TTS and lip-sync share the same voice pool. List all available voices:
+| Option | Required / default / limits |
+|---|---|
+| `--prompt`, `--prompt-path` (alias `--prompt-file`), or `--text` | One input mode required. Inline prompt wins over file; prompt/file conflict with `--text`. |
+| `--text TEXT` | Repeat for up to 20 segments, each nonempty and ≤2000 characters; single prompt has the same per-segment limit. |
+| `--voice-id ID` (alias `--voice`) | Required; use an official returned ID or ready personal `voice_...` ID. |
+| `--speed` | Default 1.0; 0.5–2.0. |
+| `--volume` | Default 80; integer 0–100. |
+| `--emotion TEXT` | Optional; ≤100 characters, free text such as `happy` or `calm`, not a fixed CLI enum. Repeat values pair by position with text segments; do not supply more emotions than segments. |
+| `--language-boost VALUE` | Optional; `Chinese`, `English`, `auto`, and other values listed by `task tts --help`. |
+| `--subtitle-enable` / `--subtitle-enabled` | Default true; supported for prompt/file or a single `--text`. Multi-segment text requires `--subtitle-enable false`. |
+| `--schedule-mode` | Optional; see schedule modes. |
+| `--wait`, `--timeout`, `--output` | Standard task submission wait/download options. |
 
 ```bash
 vidu-cli task tts-voices
+# Set OFFICIAL_VOICE_ID to an exact ID returned above.
+vidu-cli task tts --prompt-file ./narration.txt --voice-id "$OFFICIAL_VOICE_ID" \
+  --speed 1.0 --emotion calm --wait --output ./audio
+
+vidu-cli task tts --text "Welcome to the story." --text "An adventure begins." \
+  --emotion calm --emotion happy --voice-id "$OFFICIAL_VOICE_ID" \
+  --subtitle-enable false --wait --output ./audio
 ```
 
-Returns voices grouped by language.
+When `subtitle_uri` is available, directory downloads include audio and preprocessed `{task_id}_subtitle.json`. Read text from files with `--prompt-path` / `--prompt-file`; avoid shell command substitution.
 
-### 8. TTS (Text-to-Speech)
+### Lip-Sync
 
-TTS is its own subcommand. Do not use `task submit --type tts`.
-
-**Canonical argv template**
+Choose exactly one of text mode or audio mode:
 
 ```bash
-vidu-cli task tts \
-  --prompt "text" \
-  --voice-id "Chinese (Mandarin)_Reliable_Executive" \
-  --speed 1.0 \
-  --volume 80 \
-  --emotion "happy" \
-  --language-boost "Chinese"
+# Set OFFICIAL_VOICE_ID from task lip-sync-voices (or task tts-voices).
+vidu-cli task lip-sync --video ./clip.mp4 --text "Hello, welcome to our story!" \
+  --voice-id "$OFFICIAL_VOICE_ID" --speed 1.0 --volume 1.0 --wait --output ./results
+vidu-cli task lip-sync --video ./clip.mp4 --audio ./speech.mp3 --wait --output ./results
 ```
 
-When using tools that accept argv arrays, pass the same command as direct argv:
+- Video: local MP4/MOV/AVI, ≤500 MiB. Audio mode: local MP3/WAV/AAC/M4A, ≤100 MiB.
+- Text: Chinese 2–1000 characters or English 4–2000; estimated speech duration must also be at least 2 seconds. Duration is inferred from text or audio metadata, not supplied as a submit duration flag.
+- Text mode: `--voice-id` / `--voice` defaults to `English_Aussie_Bloke`; speed 0.5–2.0, volume 0.5–2.0 or 0 for server default (default 0). TTS uses a different volume scale.
+- Also accepts `--enhance` (enabled by default), `--codec` (default h265), `--schedule-mode`, and the standard wait/download options. Inspect local help for exact option syntax.
 
-```json
-["vidu-cli","task","tts","--prompt","text","--voice-id","Chinese (Mandarin)_Reliable_Executive","--speed","1.0","--language-boost","Chinese"]
-```
+## Quotes and Quota
 
-Do not use `sh -c`, shell command substitution, or `$(cat file)` for TTS. If the TTS text lives in a file, read the file first and pass its content as the `--prompt` value.
-
-| Parameter | Required | Default | Range | Description |
-|-----------|----------|---------|-------|-------------|
-| `--prompt` | One of\* | - | 1-2000 chars | Inline text to convert to speech. |
-| `--prompt-path` | One of\* | - | UTF-8 file ≤1MiB | Read the prompt from a file (one trailing newline stripped). Ignored when `--prompt` is also set. Mutually exclusive with `--text`. |
-| `--text` | One of\* | - | 1-20 segments | Repeatable segment input for multi-segment TTS. Mutually exclusive with `--prompt` and `--prompt-path`. |
-| `--voice-id` | Yes | - | See tts-voices | Voice ID. Alias: `--voice`. |
-| `--speed` | No | 1.0 | 0.5-2.0 | Speed multiplier (values outside range cause validation error) |
-| `--volume` | No | 80 | 0-100 | Volume level (values outside range cause validation error) |
-| `--emotion` | No | - | happy, sad, angry, fearful, disgusted, surprised, calm | Emotion hint for expressive speech |
-| `--language-boost` | No | - | Chinese, English, auto | Enhance specific language recognition |
-| `--subtitle-enable` | No | true | true/false | Enable subtitle JSON output. Works with `--prompt` and single `--text`; errors on multi-segment `--text`. |
-| `--schedule-mode` | No | auto | claw_pass, normal | Schedule mode: `claw_pass` (use daily quota) or `normal` (use credits). Auto-detected from claw-pass status if omitted. |
-
-List available voices: `vidu-cli task tts-voices` (grouped by language with count)
-
-Returns task_id — query result with `task get <task_id>`.
-
-**Wrong TTS command shapes**
+Use the matching cost command; it queries a quote rather than submitting a task. Preserve the intended model, duration, resolution, aspect ratio, transition, sample count, codec, schedule, and output audio choice wherever exposed. Quote responses do not guarantee a later submission will pass all input checks or have the same available balance.
 
 ```bash
-vidu-cli task submit --type tts --prompt "text" --voice-id "..."
-sh -c 'vidu-cli task tts --prompt "$(cat tts_prompt.txt)" --voice-id "..."'
-vidu-cli task tts --prompt "text"
+# Same settings and audio choice as the Wan 3 generation example.
+vidu-cli task cost --type text2video --model-version viduq2-drama-std --with-audio
+vidu-cli task cost --type text2video --model-version viduq3.1-drama-std
+vidu-cli task cost --type text2video --model-version 3.2 --duration 5 --resolution 1080p
+vidu-cli task tts-cost --text "Hello, welcome to our story!" \
+  --voice-id "$OFFICIAL_VOICE_ID" --speed 1.0 --volume 80 --pitch 0
+vidu-cli task lip-sync-cost --duration 5 --voice-id "$OFFICIAL_VOICE_ID"
+vidu-cli quota pass
+vidu-cli quota credit
+vidu-cli quota records --page 0 --pagesz 20
 ```
 
-The last command is invalid because `--voice-id` is required.
-
-### 9. Query credit cost (video/image tasks)
-
-```bash
-vidu-cli task cost \
-  --type text2video \
-  --model-version 3.2 \
-  --duration 5 \
-  --resolution 1080p
-```
-
-For video/image task types: `text2image`, `text2video`, `img2video`, `headtailimg2video`, `reference2image`, `character2video`. **For TTS and lip-sync, use `task tts-cost` and `task lip-sync-cost` respectively.**
-
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `--type` | Yes | - | Task type (video/image types only) |
-| `--model-version` | Yes | - | Model version |
-| `--duration` | No | - | Duration in seconds (required for video tasks; optional for image tasks) |
-| `--resolution` | Yes | 1080p | Resolution |
-| `--aspect-ratio` | No | - | Aspect ratio |
-| `--transition` | No | - | Transition style |
-| `--sample-count` | No | 1 | Sample count |
-| `--codec` | No | h265 | Codec |
-| `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
-
-### 9a. Query credit cost (TTS tasks)
-
-```bash
-vidu-cli task tts-cost \
-  --text "Hello, this is a test of text to speech." \
-  --voice-id "Chinese (Mandarin)_Reliable_Executive"
-```
-
-TTS is priced by character count — the `--text` content determines the cost.
-
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `--text` | Yes | - | Text content (cost calculated by character count) |
-| `--voice-id` | Yes | - | Voice ID (from `task tts-voices`) |
-| `--speed` | No | 1.0 | Speech speed: 0.5-2.0 |
-| `--pitch` | No | 0 | Pitch adjustment |
-| `--volume` | No | 80 | Volume: 0-100 |
-| `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
-
-### 9b. Query credit cost (lip-sync tasks)
-
-```bash
-vidu-cli task lip-sync-cost \
-  --duration 10 \
-  --voice-id English_Aussie_Bloke
-```
-
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `--duration` | No | - | Duration in seconds (required for video tasks; optional for image tasks) |
-| `--voice-id` | No | English_Aussie_Bloke | Voice ID (from `task tts-voices`) |
-| `--speed` | No | 1.0 | Speech speed: 0.5-2.0 |
-| `--volume` | No | 0 | Volume [0.5,2], or 0 for server default |
-| `--codec` | No | h265 | Codec |
-| `--schedule-mode` | No | auto | Schedule mode. Auto-detected from claw-pass status if omitted. |
-
-**Response fields (shared by all three cost commands):**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `cost_credits` | integer | Credits this task will cost |
-| `can_submit` | boolean | Whether the user can submit this task |
-| `current_credits` | integer | Current available credits |
-| `original_cost_credits` | integer | Original price before discount |
-| `claw_pass_quota` | object | Claw-pass quota details (when applicable) |
-
-**`claw_pass_quota` fields (when present):**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `has_pass` | boolean | Whether the user has an active claw-pass |
-| `package_id` | string | Package identifier |
-| `tier` | string | Subscription tier |
-| `daily_quota_seconds` | integer | Total daily quota in seconds |
-| `used_seconds` | integer | Seconds consumed today |
-| `remain_seconds` | integer | Remaining seconds today |
-| `cycle_start_at` | datetime | Billing cycle start time |
-| `cycle_end_at` | datetime | Billing cycle end time |
-| `next_refresh_at` | datetime | Next quota refresh time |
-| `refresh_timezone` | string | Refresh timezone (e.g. "Asia/Shanghai") |
-
-### 10. Query task result
-
-```bash
-vidu-cli task get "$TASK_ID"
-```
-
-- `state`: `success` | `failed` | `processing` | ...
-- Response always includes: `task_id`, `state`, `type`, `model`
-- **failed**: `err_code`, `err_msg` — note `ok` may still be `true` with `state: failed`
-- **processing**: poll again later
-
-Download media on success:
-
-```bash
-vidu-cli task get "$TASK_ID" --output ./downloads
-```
-
-- Downloads all media files to `./downloads/` as `{task_id}_{index}.mp4` (index is 0-based: `{task_id}_0.mp4`, `{task_id}_1.mp4`, etc.); for TTS tasks with `subtitle_uri`, also downloads preprocessed subtitle JSON as `{task_id}_subtitle.json`
-- Returns `downloaded_files` (list of local paths)
-- If not yet `success`: returns `download_skipped: "task not ready"`
-
-### 11. Image upload (optional)
-
-```bash
-vidu-cli upload /path/to/image.jpg
-```
-
-Returns: `upload_id`, `ssupload_uri`. Usually unnecessary — `task submit --image` and `element create --image` accept paths and URLs directly.
-
----
-
-## Material elements (references)
-
-### Check reference element name
-
-```bash
-vidu-cli element check --name "my_character"
-```
-
-Use before creating an element when you need to know whether a name is available. `element create` also checks the name as part of its normal create flow.
-
-### Create reference element
-
-One command performs name check → preprocess (AI description/style) → create:
-
-```bash
-vidu-cli element create \
-  --name "my_character" \
-  --image /path/to/image1.jpg \
-  --image /path/to/image2.jpg
-```
-
-With custom description and style:
-
-```bash
-vidu-cli element create \
-  --name "my_character" \
-  --image /path/to/image1.jpg \
-  --description "A young woman with long black hair" \
-  --style "realistic"
-```
-
-**Constraints**
-
-- 1–3 images required (fewer than 1 or more than 3 causes a validation error)
-- `--image`: local path, URL, or `ssupload` URI
-- `--description`: optional, 1–1280 chars (AI default if omitted)
-- `--style`: optional, max 64 chars (AI default if omitted)
-- Name must be unique (checked automatically)
-
-Returns: `id`, `version` (for `--material` / `[@name]` usage).
-
-### List personal elements
-
-```bash
-vidu-cli element list --keyword "keyword"
-```
-
-Example shape: `elements: [{ id, version, name, ... }], next_page_token`.
-
-### Search community elements
-
-```bash
-vidu-cli element search --keyword "tiger" --pagesz 20
-```
-
-Present results with `id`, `version`, `name`, `description`, `category` when available.
-
----
-
-## Prompt tips
-
-- **text-to-image**: Subject, style, lighting, composition.
-- **text-to-video**: Scene + action; optional camera language (e.g. slow pan left, close-up tracking shot).
-- **image-to-video**: Describe motion or change, not only static description.
-- **head-tail-image-to-video**: Similar frames → smoother transition; very different frames → stronger morph.
-- **reference-to-image / reference-to-video**: **reference2image** and **character2video** both require a **non-empty text prompt**. **Image count + material count** must be **≥ 1 and ≤ 7**. You may use images only, materials only, or a mix; without `element create` when using images only. With a saved or community reference, use `[@reference_name]` and matching `--material`.
-- **lip-sync**: Choose text mode for TTS with voice selection, or audio mode for custom audio. Text mode auto-calculates duration from text length (Chinese: ~5 chars/sec, English: ~10 chars/sec). Audio mode reads duration from audio file metadata. Video must contain visible face/mouth for best results.
-- **TTS**: Use `tts-voices` to find the right voice ID. `--language-boost` helps when mixing languages. `--emotion` provides a hint for expressive speech.
-
----
-
-## CLI stdout errors (canonical)
-
-All commands return one JSON line on stdout.
-
-API-backed responses usually include `trace_id`; keep it when reporting submit/query results because it is useful for support and debugging.
-
-**Success (submit)**
-
-```json
-{"ok": true, "task_id": "...", "trace_id": "..."}
-```
-
-**Failure (CLI / transport / HTTP)**
-
-```json
-{"ok": false, "error": {"type": "client_error|http_error|network_error|parse_error", "message": "...", "http_status": 422, "code": "invalid_param"}}
-```
-
-**Error type meanings**
-
-| Type | Meaning |
-|------|---------|
-| `http_error` | API returned 4xx/5xx; response may include `http_status`, `code`, and `message`. |
-| `network_error` | Connection failure, DNS failure, or timeout. |
-| `parse_error` | API response was not valid JSON. |
-| `client_error` | Local CLI issue such as missing token, bad path, unsupported command shape, or validation failure. |
-
-**What to report**
-
-- After submit: return `task_id` and `trace_id`; tell the user processing is in progress.
-- After query: if `state` is `success`, return `downloaded_files` when `--output` was used; otherwise return the `task_id` and say to query with `--output <dir>` to download.
-- If task `state` is `failed`, return `err_code` and `err_msg` exactly. Note that `ok` can still be `true` for a failed task state.
-- On CLI failure (`ok: false`), report `error.type`, `http_status`, `code`, and `message` exactly when present.
-
-**Never guess** — report `error` fields exactly. Retry behavior: **errors_and_retry.md**.
-
----
-
-## Validation rules
-
-- `type` must match a supported task.
-- `model_version` must be allowed for that task (see matrix).
-- `duration` must fit model + task.
-- `resolution` must be passed and must be supported for the task type. If the user does not specify a resolution, pass `1080p`.
-- Do not pass `aspect_ratio` for **img2video** / **headtailimg2video** when disallowed.
-- Do not pass `transition` for reference tasks or **text2image**.
-- For **reference2image** and **character2video**: **image count + material count** in **1–7** (inclusive); **non-empty text prompt required**. Violating either constraint causes a validation error.
-- **`--audio`** (`character2video` with `3.2_a` only): max 3 audio inputs; each must be wav/mp3, ≤15MB, duration 2–15s; total duration of all audio inputs ≤15s. Passing `--audio` with any other task type or model_version causes a validation error. Accepts local path or `ssupload:?id=...` (HTTP/HTTPS URLs not supported; local files are validated).
-- **`--video`** (`character2video` with `3.2_a` only): max 3 video inputs. Passing `--video` with any other task type or model_version causes a validation error. Accepts local path or `ssupload:?id=...` (HTTP/HTTPS URLs not supported). **Local file validation**: format must be mp4 or mov; single file ≤ 50MB; aspect ratio (width ÷ height) must be in [0.4, 2.5]; width and height each in [300, 60000]; total pixels (width × height) must be in [409600, 2086876]; total duration of all local video inputs ≤ 15s.
-- API-level `input.enhance` / recaption: **no manual CLI field** — rely on `vidu-cli` defaults.
-- `--schedule-mode`: valid values are `claw_pass` and `normal`. If omitted, auto-detected by querying claw-pass status.
-
-### `--material` format
-
-The `--material` flag uses the format `name:id:version` where:
-- `name`: the element name (matches `[@name]` in prompt)
-- `id`: the element ID returned by `element create` or `element list/search`
-- `version`: the element version
-
-Example: `--material "aliya:3073530415201165:1765430214"` pairs with `[@aliya]` in the prompt text. The `[@name]` in the prompt is optional — it helps the model associate the reference with specific parts of the prompt, but generation works without it.
-
-For multiple elements, repeat the entire flag:
-
-```bash
---material "NAME_1:ELEMENT_ID_1:VERSION_1" \
---material "NAME_2:ELEMENT_ID_2:VERSION_2"
-```
-
-Do not pass comma-separated or space-separated material lists inside one `--material` value.
+| Command | Options / result |
+|---|---|
+| `task cost` | Same six types/model aliases as submit; no media input flags. Legacy video duration is required, image duration is ignored; resolution defaults to 1080p for legacy models. Drama/Wan 3 use the same 5s/720p/16:9 defaults as submit. Accepts aspect ratio, transition, sample count (default 1), codec (default h265), schedule mode, and output audio. |
+| `task tts-cost` | Requires `--text` and `--voice-id` / `--voice`; speed 1.0, pitch 0, volume 80 by default; optional schedule mode. `--pitch` belongs to this quote command, not `task tts`. |
+| `task lip-sync-cost` | Requires `--duration`; voice defaults to `English_Aussie_Bloke`, speed 1.0, volume 0, codec h265; optional schedule mode. |
+| `task upscale-cost` | Same sources/resolution/duration rules as video upscale; no upload or task creation. See [task workflows](task_workflows.md). |
+| `quota pass` | `has_pass`, `package_id`, `tier`, daily/used/remaining seconds and cycle/refresh timestamps when available. |
+| `quota credit` | `credits`, expiry buckets, concurrency, credit source buckets, and subscription expiry when available. |
+| `quota records` | Zero-based numeric `--page` (default 0), `--pagesz` 1–100 (default 20); returns `records` and `total`, not a cursor. |
+
+Shared quote fields include `cost_credits`, `original_cost_credits`, `current_credits`, `can_submit`, and `claw_pass_quota` when applicable. Use the server's returned price; do not maintain a local price table. Quote commands do not accept submission `--wait`, `--timeout`, or `--output`.
+
+For JSON envelopes, stderr parsing errors, optional `trace_id`/`suggestion`, terminal task states, and safe retry decisions, read [errors and retry](errors_and_retry.md).
