@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "skill_version": "1.0.0",
+  "mcp_server": {
+    "min_version": "1.1.0",
+    "max_version_exclusive": "2.0.0"
+  }
+}

@@ -4,7 +4,21 @@
 
 Generate and deliver Vidu videos, images, and speech, and manage tasks, reference assets, creations, and cloned voices through `vidu-cli`.
 
-**Skill 1.5.0 requires vidu-cli v0.2.36 or newer**, aligned with v0.2.36 (`6bb4b07`). It uses the host's available command execution tool; no batch orchestration dependency is required.
+**CLI skill 1.5.0 requires vidu-cli v0.2.36 or newer**, aligned with v0.2.36 (`6bb4b07`). It uses the host's available command execution tool; no batch orchestration dependency is required.
+
+For agents with a connected Vidu MCP server, use the separate [Vidu MCP skill](mcp/vidu-mcp/SKILL.md). It uses the connected account and current tool schemas; CLI installation and local `VIDU_TOKEN` environment variables are not required for that workflow. The CLI skill at the repository root remains available for command-based workflows.
+
+## MCP and WorkBuddy
+
+The MCP skill body and reference files are maintained in this repository. WorkBuddy connector configuration, packaging, and packaging tests are maintained in Unidu. The packager reads a specified vidu-skills checkout; Unidu keeps no skill body copy, and the MCP service does not load it at runtime. Connecting an MCP server alone does not install the skill.
+
+The MCP Skill has its own release version, independent of the CLI Skill, connector package, and MCP protocol date. Its sole machine-readable version source is [compatibility.json](mcp/vidu-mcp/compatibility.json): `skill_version` identifies the Skill release; `mcp_server.min_version` is inclusive and `max_version_exclusive` is exclusive. Before business operations, the agent follows the Skill to call `get_server_info`, check the `vidu` server identity, and compare its stable `X.Y.Z` version with that range. An unavailable or incompatible version stops the workflow and requires an appropriate server upgrade/reconnection or compatible Skill release.
+
+For MCP Skill releases, compatible functionality additions increment the minor version, breaking interface requirements increment the major version, and wording corrections increment the patch version. Maintain the range in the manifest when supported server contracts change. Declared version support still requires Schema and workflow validation; an in-range version is not an automatic compatibility guarantee.
+
+For MCP uploads, the skill describes how the agent transfers local file bytes to the signed URL, confirms the returned ETag, and waits for the prepared URI to become ready. The agent uses its available local file and HTTP tools; no bundled transfer script is required.
+
+Build the domestic and international WorkBuddy ZIPs from the Unidu checkout, passing this repository's path with `--skills-dir`. Both packages use the same MCP skill body and references, with connector metadata for the selected region. See `integrations/workbuddy/README.md` in Unidu for commands and delivery details. Packaging does not publish the connectors or establish that the service endpoints have been deployed.
 
 ## Capabilities
 

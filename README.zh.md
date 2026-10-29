@@ -4,7 +4,21 @@
 
 通过 `vidu-cli` 生成和交付 Vidu 视频、图像与语音，管理任务、参考素材、作品及个人克隆音色。
 
-**技能 1.5.0 要求 vidu-cli v0.2.36 或更新版本**，以 v0.2.36（`6bb4b07`）为同步基准。使用宿主提供的命令执行工具，不依赖特定批量编排工具。
+**CLI技能 1.5.0 要求 vidu-cli v0.2.36 或更新版本**，以 v0.2.36（`6bb4b07`）为同步基准。使用宿主提供的命令执行工具，不依赖特定批量编排工具。
+
+Agent 已连接 Vidu MCP 时，使用独立的 [Vidu MCP Skill](mcp/vidu-mcp/SKILL.md)。该入口使用已连接的账号和当前工具Schema，无需安装CLI或在本地设置 `VIDU_TOKEN` 环境变量。仓库根目录的CLI Skill继续服务命令行工作流。
+
+## MCP 与 WorkBuddy
+
+MCP Skill正文和参考文件仅在本仓库维护。WorkBuddy连接器配置、打包器及打包测试在Unidu仓库维护。打包器读取指定的vidu-skills checkout；Unidu不保存Skill正文副本，MCP服务运行时不加载Skill。仅连接MCP不会自动安装Skill。
+
+MCP Skill采用独立发布版本，与CLI Skill、连接器包和MCP协议日期分别管理。唯一机器版本源为 [compatibility.json](mcp/vidu-mcp/compatibility.json)：`skill_version` 标识Skill版本；`mcp_server.min_version` 为支持下界（包含），`max_version_exclusive` 为上界（不包含）。执行业务前，Agent按Skill调用 `get_server_info`，检查服务器身份为 `vidu`，并将其稳定 `X.Y.Z` 版本与该范围比较。版本不可得或不兼容时停止流程，提示适当升级／重连服务器或安装兼容的Skill版本。
+
+MCP Skill发布时，兼容新增能力递增minor，破坏接口要求递增major，文字修正递增patch；支持的服务器契约变化时在manifest中调整范围。版本支持声明仍须经过Schema和工作流验证，处于范围内不代表自动保证所有操作兼容。
+
+MCP上传通过文字指导Agent把本地文件原始字节发送到签名地址、确认真实ETag，并等待素材准备至ready。Agent使用宿主已有的本地文件与HTTP能力，不依赖预置传输脚本。
+
+在Unidu checkout中构建国内和海外WorkBuddy ZIP，用 `--skills-dir` 指定本仓库路径。两个包共用MCP Skill正文和参考文件，区域差异由连接器元数据提供。命令与交付细节见Unidu的 `integrations/workbuddy/README.md`。打包不会自动发布连接器，也不代表服务入口已经部署。
 
 ## 功能
 
